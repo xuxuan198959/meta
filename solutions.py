@@ -639,6 +639,416 @@ def subarray_sum(nums: List[int], k: int) -> int:
     return total
 
 
+# ---------------------------------------------------------------------------
+# Q14. Best Rating-to-Price Index
+# ---------------------------------------------------------------------------
+# Given equal-length arrays `rating` and `prices` (prices > 0), return the index
+# that maximizes rating[i] / prices[i]. On ties, return the smallest index.
+#
+# Idea: never divide. Compare ratios by cross-multiplication --
+#   rating[i]/prices[i] > rating[b]/prices[b]  <=>  rating[i]*prices[b] > rating[b]*prices[i]
+# (valid because prices are positive). Update only on a STRICT improvement so
+# the earliest index wins ties.
+#
+# Time O(n)   Space O(1)
+def best_ratio_index(rating: List[int], prices: List[int]) -> int:
+    best = 0
+    for i in range(1, len(rating)):
+        if rating[i] * prices[best] > rating[best] * prices[i]:
+            best = i
+    return best
+
+
+# ---------------------------------------------------------------------------
+# Q15. Complete Round-Trip Missions
+# ---------------------------------------------------------------------------
+# Complete `missions` round trips A<->B. `a2b` and `b2a` are ascending lists of
+# departure times. Each leg boards the earliest departure not earlier than the
+# current time. Return the time all missions finish.
+#
+# Idea: keep a running `current` time. For each mission binary-search a2b for the
+# first time >= current (that becomes current), then do the same in b2a. Sorted
+# input makes each lookup O(log n).
+#
+# Time O(missions * log n)   Space O(1)
+import bisect
+
+
+def round_trip_time(a2b: List[int], b2a: List[int], missions: int,
+                    start: int = 0) -> int:
+    current = start
+    for _ in range(missions):
+        current = a2b[bisect.bisect_left(a2b, current)]   # earliest A->B >= now
+        current = b2a[bisect.bisect_left(b2a, current)]   # earliest B->A >= that
+    return current
+
+
+# ---------------------------------------------------------------------------
+# Q16. Apply Matrix Commands
+# ---------------------------------------------------------------------------
+# Apply a list of commands to a 2D array and return the result. Commands:
+#   ("swap_row", i, j) / ("swap_col", i, j) / ("reverse_row", i) /
+#   ("reverse_col", i) / ("rotate",)  -- rotate 90 degrees clockwise.
+#
+# Idea: swaps and reversals are direct index work. A 90-degree clockwise
+# rotation = transpose (swap rows with columns) then reverse each row.
+#
+# Time O(cells) per command   Space O(cells) for the working copy
+def apply_matrix_commands(matrix: List[List[int]],
+                          commands: List[tuple]) -> List[List[int]]:
+    m = [row[:] for row in matrix]        # work on a copy
+    for cmd in commands:
+        op = cmd[0]
+        if op == "swap_row":
+            _, i, j = cmd
+            m[i], m[j] = m[j], m[i]
+        elif op == "swap_col":
+            _, i, j = cmd
+            for row in m:
+                row[i], row[j] = row[j], row[i]
+        elif op == "reverse_row":
+            _, i = cmd
+            m[i].reverse()
+        elif op == "reverse_col":
+            _, i = cmd
+            col = [row[i] for row in m][::-1]
+            for row, v in zip(m, col):
+                row[i] = v
+        elif op == "rotate":
+            m = [list(row) for row in zip(*m)]   # transpose
+            for row in m:
+                row.reverse()                    # then reverse each row
+        else:
+            raise ValueError(f"unknown command: {op}")
+    return m
+
+
+# ---------------------------------------------------------------------------
+# Q17. Count Access-Code Pairs
+# ---------------------------------------------------------------------------
+# Count ordered index pairs (i, j) with words[i] + words[j] == accesscode. The
+# indices are chosen independently, so i == j is allowed when both halves match.
+#
+# Idea: count each string's frequency. Split accesscode at every position into
+# (left, right); each split contributes count[left] * count[right] pairs. Sum
+# over all splits.
+#
+# Time O(len(accesscode)^2) for slicing (or O(L) with rolling hashes)   Space O(n)
+from collections import Counter
+
+
+def count_access_pairs(words: List[str], accesscode: str) -> int:
+    counts = Counter(words)
+    total = 0
+    for k in range(len(accesscode) + 1):
+        total += counts[accesscode[:k]] * counts[accesscode[k:]]
+    return total
+
+
+# ---------------------------------------------------------------------------
+# Q18. Merge Three Sorted Arrays, dedup (LeetCode 88 variant)
+# ---------------------------------------------------------------------------
+# Merge three ascending arrays into one ascending array with all duplicates
+# removed (repeats within an array AND values shared across arrays).
+#
+# Idea (three pointers): repeatedly take the smallest of the three current
+# heads. Advance every pointer whose head equals that value (drops cross-array
+# dupes), and append it only if it differs from the last value written (drops
+# within-array dupes).
+#
+# Time O(total elements)   Space O(unique elements) for the output
+# (heapq.merge(a, b, c) + a consecutive-dedup pass is a one-line alternative.)
+def merge_three_sorted(a: List[int], b: List[int], c: List[int]) -> List[int]:
+    i = j = k = 0
+    out: List[int] = []
+    while i < len(a) or j < len(b) or k < len(c):
+        heads = []
+        if i < len(a):
+            heads.append(a[i])
+        if j < len(b):
+            heads.append(b[j])
+        if k < len(c):
+            heads.append(c[k])
+        smallest = min(heads)
+        # Advance every array whose head equals the smallest (cross-array dedup).
+        if i < len(a) and a[i] == smallest:
+            i += 1
+        if j < len(b) and b[j] == smallest:
+            j += 1
+        if k < len(c) and c[k] == smallest:
+            k += 1
+        # Append only if new (within-array dedup).
+        if not out or out[-1] != smallest:
+            out.append(smallest)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Q19. Simplify Path (LeetCode 71)
+# ---------------------------------------------------------------------------
+# Given an absolute Unix-style path (always starts with '/'), return its
+# canonical form: '.' = current dir, '..' = parent dir, collapse repeated
+# slashes, and no trailing slash (except the root itself).
+#
+# Idea: canonicalize with a stack -- skip '' and '.', pop on '..' (unless
+# already at root), push any real name.
+#
+# Time O(len of path)   Space O(len of path)
+def simplify_path(path: str) -> str:
+    stack: List[str] = []
+    for part in path.split("/"):
+        if part in ("", "."):
+            continue
+        if part == "..":
+            if stack:                 # can't go above the root
+                stack.pop()
+        else:
+            stack.append(part)
+    return "/" + "/".join(stack)
+
+
+# ---------------------------------------------------------------------------
+# Q20. Binary Tree Vertical Order Traversal (LeetCode 314)
+# ---------------------------------------------------------------------------
+# Group node values by column (left to right); within a column, top to bottom,
+# and left to right for nodes sharing a row and column.
+#
+# Idea (DFS): carry (row, col) down the tree -- root is col 0, left child
+# col-1, right child col+1. Record (row, value) per column. Pre-order with the
+# left child first records same-depth nodes left to right, so a stable sort by
+# row per column reproduces the required order. DFS uses the recursion stack
+# (O(height)) instead of an explicit BFS queue (O(width)).
+#
+# Time O(n log n) (sorting each column)   Space O(n) map + O(height) stack
+def vertical_order(root) -> List[List[int]]:
+    cols: dict = {}          # col -> list of (row, value) in pre-order
+
+    def dfs(node, row, col):
+        if not node:
+            return
+        cols.setdefault(col, []).append((row, node.val))
+        dfs(node.left, row + 1, col - 1)
+        dfs(node.right, row + 1, col + 1)
+
+    dfs(root, 0, 0)
+    result = []
+    for col in sorted(cols):
+        # Stable sort by row; DFS already ordered ties left to right.
+        ordered = sorted(cols[col], key=lambda rv: rv[0])
+        result.append([val for _row, val in ordered])
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Q21. Find a Local Minimum (LeetCode 162 variant)
+# ---------------------------------------------------------------------------
+# Return the index of any local minimum (strictly smaller than both neighbors);
+# out-of-bounds neighbors count as +inf, so one always exists. Adjacent
+# elements are assumed to differ. Iterative binary search, O(log n).
+#
+# Idea: at mid, compare only nums[mid] vs nums[mid+1] (a single check).
+#   nums[mid] > nums[mid+1] -> slope descends right, a min is in [mid+1, hi].
+#   otherwise                -> a min is in [lo, mid].
+# The window shrinks to one index -- a local minimum.
+#
+# Time O(log n)   Space O(1)
+def find_local_min(nums: List[int]) -> int:
+    lo, hi = 0, len(nums) - 1
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if nums[mid] > nums[mid + 1]:
+            lo = mid + 1
+        else:
+            hi = mid
+    return lo
+
+
+# O(n) alternative: a `prev` pointer (initially +inf) detects the first index
+# whose value is below both its previous and next neighbor.
+def find_local_min_linear(nums: List[int]) -> int:
+    prev = INF
+    for i, x in enumerate(nums):
+        nxt = nums[i + 1] if i + 1 < len(nums) else INF
+        if prev > x < nxt:
+            return i
+        prev = x
+    return -1
+
+
+# ---------------------------------------------------------------------------
+# Q22. Randomized Container: insert / pop_random in O(1) (LeetCode 380 variant)
+# ---------------------------------------------------------------------------
+# insert(element)  -- add an element
+# pop_random()     -- remove and return a uniformly random element
+#
+# Idea: keep a dynamic array of elements plus a hash map element -> its index in
+# that array. pop_random picks a random index, swaps that element with the last
+# one (fixing the moved element's stored index), then pops the tail -- O(1)
+# removal instead of shifting. Assumes distinct elements (see LeetCode 381 for
+# duplicates: map value -> set of indices).
+import random
+
+
+class RandomizedContainer:
+    def __init__(self):
+        self.items: List = []          # the elements
+        self.index: dict = {}          # element -> position in self.items
+
+    def insert(self, element) -> None:
+        self.index[element] = len(self.items)
+        self.items.append(element)
+
+    def pop_random(self):
+        if not self.items:
+            raise IndexError("pop_random from empty container")
+        i = random.randrange(len(self.items))
+        value = self.items[i]
+        last = self.items[-1]
+        # Move the last element into slot i, then drop the tail.
+        self.items[i] = last
+        self.index[last] = i
+        self.items.pop()
+        del self.index[value]
+        return value
+
+    def __len__(self) -> int:
+        return len(self.items)
+
+
+# ---------------------------------------------------------------------------
+# Q23. Count Distinct Values in a Sorted Array (K << n)
+# ---------------------------------------------------------------------------
+# The array is sorted with only K distinct values, K much smaller than n.
+#
+# Idea: for each distinct value, binary-search the first index whose value is
+# strictly greater and jump there; K jumps, each O(log n) -> O(K log n). Landing
+# on the first strictly-greater index prevents counting a value twice.
+#
+# Time O(K log n)   Space O(1)
+def count_distinct(arr: List[int]) -> int:
+    n = len(arr)
+    count = 0
+    i = 0
+    while i < n:
+        count += 1
+        i = bisect.bisect_right(arr, arr[i], i, n)   # first index > arr[i]
+    return count
+
+
+# Baseline O(n): a prev pointer counts each time the value changes.
+def count_distinct_linear(arr: List[int]) -> int:
+    count = 0
+    prev = None
+    for x in arr:
+        if count == 0 or x != prev:
+            count += 1
+        prev = x
+    return count
+
+
+# ---------------------------------------------------------------------------
+# Q25. Plan Round Trip With Minimum Flight Cost
+# ---------------------------------------------------------------------------
+# Given departure costs D and return costs R (per day, same length), pick days
+# i < j minimizing D[i] + R[j]. Return (departure_index, return_index, cost).
+# Tie-break: minimum cost, then earliest departure, then latest return.
+#
+# Idea: scan the return day j left to right, keeping the minimum departure cost
+# in D[0..j-1] (earliest index on ties). For each j the best trip returning on
+# day j is min_dep + R[j]; compare against the global best with the tie-break
+# rules. min_i is non-decreasing, so the "earlier departure" branch never fires
+# for a later j, but it is kept for correctness/clarity.
+#
+# Time O(n)   Space O(1)
+def plan_round_trip(D: List[int], R: List[int]):
+    n = min(len(D), len(R))
+    if n < 2:
+        return None                    # need at least one valid pair i < j
+    best = None                        # (cost, dep, ret)
+    min_i = 0                          # earliest index of the running min in D
+    for j in range(1, n):
+        i = j - 1
+        if D[i] < D[min_i]:            # strict '<' keeps the earliest on ties
+            min_i = i
+        cost = D[min_i] + R[j]
+        if best is None:
+            best = (cost, min_i, j)
+        else:
+            bc, bi, bj = best
+            if (cost < bc
+                    or (cost == bc and min_i < bi)
+                    or (cost == bc and min_i == bi and j > bj)):
+                best = (cost, min_i, j)
+    cost, dep, ret = best
+    return dep, ret, cost
+
+
+# ---------------------------------------------------------------------------
+# Q26. Maximum Characters From Non-Overlapping Words (AI-enabled; cf. LC 1239)
+# ---------------------------------------------------------------------------
+# Choose a subset of lowercase words whose letter sets are pairwise disjoint,
+# maximizing the total number of distinct characters captured.
+#
+# Idea: encode each word as a 26-bit letter mask; its value is the popcount.
+# Backtrack over the words with a `used` mask -- a word fits iff used & mask == 0
+# -- tracking the best total popcount reached.
+#
+# Time O(2^n) worst case   Space O(n) recursion
+def max_captured_chars(words: List[str]) -> int:
+    masks = []
+    for w in words:
+        m = 0
+        for ch in w:
+            m |= 1 << (ord(ch) - ord("a"))
+        masks.append(m)
+
+    best = 0
+
+    def dfs(idx: int, used: int, count: int) -> None:
+        nonlocal best
+        best = max(best, count)
+        for k in range(idx, len(words)):
+            if used & masks[k] == 0:            # no shared letters
+                dfs(k + 1, used | masks[k], count + bin(masks[k]).count("1"))
+
+    dfs(0, 0, 0)
+    return best
+
+
+# ---------------------------------------------------------------------------
+# Q27. Merge Two Sorted Interval Lists (LeetCode 56 variant)
+# ---------------------------------------------------------------------------
+# A and B are each sorted-by-start and internally non-overlapping. Merge into
+# one sorted list with overlapping (or touching) intervals coalesced.
+#
+# Idea: two-pointer merge by start into one start-sorted sequence, then a single
+# sweep that extends the last kept interval when the next starts at or before its
+# end.
+#
+# Time O(n + m)   Space O(n + m)
+def merge_two_interval_lists(a: List[List[int]],
+                             b: List[List[int]]) -> List[List[int]]:
+    ordered = []
+    i = j = 0
+    while i < len(a) and j < len(b):
+        if a[i][0] <= b[j][0]:
+            ordered.append(a[i])
+            i += 1
+        else:
+            ordered.append(b[j])
+            j += 1
+    ordered.extend(a[i:])
+    ordered.extend(b[j:])
+
+    merged: List[List[int]] = []
+    for start, end in ordered:
+        if merged and start <= merged[-1][1]:   # overlaps/touches -> extend
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+    return merged
+
+
 def _run_self_tests() -> None:
     # Q1a
     assert is_alien_sorted(["hello", "leetcode"], "hlabcdefgijkmnopqrstuvwxyz")
@@ -772,6 +1182,135 @@ def _run_self_tests() -> None:
     assert subarray_sum([1, 2, 3], 3) == 2
     assert subarray_sum([1, -1, 0], 0) == 3          # negatives / zero sums
     assert subarray_sum([3, 4, 7, 2, -3, 1, 4, 2], 7) == 4
+
+    # Q14
+    assert best_ratio_index([4, 2, 7], [2, 1, 5]) == 0   # 2.0 == 2.0 -> smaller
+    assert best_ratio_index([1, 2, 3], [3, 2, 1]) == 2   # 1/3, 1, 3
+    assert best_ratio_index([5], [10]) == 0
+    assert best_ratio_index([3, 3], [1, 1]) == 0         # exact tie -> index 0
+
+    # Q15
+    assert round_trip_time([1, 3, 5, 7], [2, 4, 6, 8], 2) == 4
+    assert round_trip_time([1, 3, 5, 7], [2, 4, 6, 8], 1) == 2
+    assert round_trip_time([10, 20], [15, 25], 1, start=0) == 15
+    # "not earlier than" is >=, so a leg may leave at the exact current time.
+    assert round_trip_time([0, 5], [0, 5], 1, start=0) == 0
+
+    # Q16
+    assert apply_matrix_commands([[1, 2], [3, 4]], [("rotate",)]) == \
+        [[3, 1], [4, 2]]
+    assert apply_matrix_commands([[1, 2], [3, 4]],
+                                 [("rotate",), ("reverse_row", 0)]) == \
+        [[1, 3], [4, 2]]
+    assert apply_matrix_commands([[1, 2], [3, 4]], [("swap_row", 0, 1)]) == \
+        [[3, 4], [1, 2]]
+    assert apply_matrix_commands([[1, 2], [3, 4]], [("swap_col", 0, 1)]) == \
+        [[2, 1], [4, 3]]
+    assert apply_matrix_commands([[1, 2, 3]], [("reverse_row", 0)]) == \
+        [[3, 2, 1]]
+    assert apply_matrix_commands([[1], [2], [3]], [("reverse_col", 0)]) == \
+        [[3], [2], [1]]
+
+    # Q17
+    assert count_access_pairs(["a", "b", "ab", "c"], "ab") == 1
+    assert count_access_pairs(["a", "a", "aa"], "aa") == 4   # i == j allowed
+    assert count_access_pairs(["ab", "cd", "abcd"], "abcd") == 1
+    assert count_access_pairs(["x", "y"], "ab") == 0
+
+    # Q18
+    assert merge_three_sorted([1, 2, 5], [2, 3], [3, 6]) == [1, 2, 3, 5, 6]
+    assert merge_three_sorted([1, 1, 2], [2, 2], []) == [1, 2]  # within + across
+    assert merge_three_sorted([], [], []) == []
+    assert merge_three_sorted([1, 4], [2, 4], [4, 5]) == [1, 2, 4, 5]
+
+    # Q19
+    assert simplify_path("/home/") == "/home"
+    assert simplify_path("/../") == "/"                   # can't go above root
+    assert simplify_path("/home//foo/") == "/home/foo"   # collapse slashes
+    assert simplify_path("/a/./b/../../c/") == "/c"
+    assert simplify_path("/") == "/"
+
+    # Q20   tree:      3
+    #                /   \
+    #               9    20
+    #                    / \
+    #                   15  7
+    vt = TreeNode(3, TreeNode(9), TreeNode(20, TreeNode(15), TreeNode(7)))
+    assert vertical_order(vt) == [[9], [3, 15], [20], [7]]
+    assert vertical_order(None) == []
+    #       1        columns: [2] | [1, 4, 5] | [3]
+    #      / \       4 and 5 share row+col -> left to right.
+    #     2   3
+    #      \  /
+    #      4 5
+    vt2 = TreeNode(1, TreeNode(2, None, TreeNode(4)),
+                   TreeNode(3, TreeNode(5), None))
+    assert vertical_order(vt2) == [[2], [1, 4, 5], [3]]
+
+    # Q21
+    assert find_local_min([3, 2, 1, 2, 3]) == 2
+    assert find_local_min([1, 2, 3]) == 0        # boundary: +inf on the left
+    assert find_local_min([3, 2, 1]) == 2        # boundary: +inf on the right
+    assert find_local_min([5]) == 0
+    # Whatever index is returned must really be a local minimum.
+    for nums in ([3, 2, 1, 2, 3], [1, 2, 3], [3, 2, 1], [5], [2, 1],
+                 [5, 4, 3, 4, 1, 2]):
+        i = find_local_min(nums)
+        left = nums[i - 1] if i - 1 >= 0 else INF
+        right = nums[i + 1] if i + 1 < len(nums) else INF
+        assert left > nums[i] < right
+    assert find_local_min_linear([3, 2, 1, 2, 3]) == 2
+
+    # Q22
+    random.seed(0)
+    c = RandomizedContainer()
+    for v in [10, 20, 30, 40, 50]:
+        c.insert(v)
+    assert len(c) == 5
+    drained = sorted(c.pop_random() for _ in range(5))
+    assert drained == [10, 20, 30, 40, 50]      # every element comes out once
+    assert len(c) == 0
+    try:
+        c.pop_random()
+        raise AssertionError("expected IndexError")
+    except IndexError:
+        pass
+
+    # Q23
+    assert count_distinct([1, 1, 2, 2, 2, 3]) == 3
+    assert count_distinct([]) == 0
+    assert count_distinct([5]) == 1
+    assert count_distinct([1, 1, 1]) == 1
+    assert count_distinct([1, 2, 3, 4]) == 4
+    for a in ([1, 1, 2, 2, 2, 3], [], [5], [1, 1, 1], [1, 2, 3, 4],
+              [0, 0, 0, 7, 7, 9, 9, 9, 9]):
+        assert count_distinct(a) == count_distinct_linear(a)
+
+    # Q25
+    assert plan_round_trip([4, 1, 3], [5, 2, 4]) == (1, 2, 5)
+    # All pairs tie at cost 4 -> earliest departure (0), then latest return (2).
+    assert plan_round_trip([1, 1, 5], [5, 3, 3]) == (0, 2, 4)
+    # Conflict: (0,1) and (2,3) both cost 10 -> earliest departure wins.
+    assert plan_round_trip([6, 100, 3, 100], [100, 4, 100, 7]) == (0, 1, 10)
+    assert plan_round_trip([2, 5], [9, 1]) == (0, 1, 3)
+    assert plan_round_trip([3], [3]) is None          # no valid i < j
+
+    # Q26
+    assert max_captured_chars(["ab", "cd", "abc"]) == 4    # "ab" + "cd"
+    assert max_captured_chars(["un", "iq", "ue"]) == 4     # "un" + "iq"
+    assert max_captured_chars(["cha", "r", "act", "ers"]) == 6
+    assert max_captured_chars(["aa", "bb"]) == 2           # distinct letters
+    assert max_captured_chars([]) == 0
+    assert max_captured_chars(["abc"]) == 3
+
+    # Q27
+    assert merge_two_interval_lists([[1, 3], [5, 7]], [[2, 4], [6, 8]]) == \
+        [[1, 4], [5, 8]]
+    assert merge_two_interval_lists([[1, 2], [3, 4]], [[5, 6]]) == \
+        [[1, 2], [3, 4], [5, 6]]
+    assert merge_two_interval_lists([], [[1, 5]]) == [[1, 5]]
+    assert merge_two_interval_lists([[1, 10]], [[2, 3], [4, 5]]) == [[1, 10]]
+    assert merge_two_interval_lists([[1, 3]], [[3, 5]]) == [[1, 5]]  # touching
 
     print("All self-tests passed.")
 
