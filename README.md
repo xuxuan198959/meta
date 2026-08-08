@@ -21,6 +21,21 @@ in [`solutions.py`](./solutions.py).
 | 11 | [Find the Container String](#11-find-the-container-string) | — |
 | 12 | [Kth Largest Element in an Array](#12-kth-largest-element-in-an-array) | LeetCode 215 |
 | 13 | [Subarray Sum Equals K](#13-subarray-sum-equals-k) | LeetCode 560 |
+| 14 | [Best Rating-to-Price Index](#14-best-rating-to-price-index) | — |
+| 15 | [Complete Round-Trip Missions](#15-complete-round-trip-missions) | — |
+| 16 | [Apply Matrix Commands](#16-apply-matrix-commands) | — |
+| 17 | [Count Access-Code Pairs](#17-count-access-code-pairs) | — |
+| 18 | [Merge Three Sorted Arrays](#18-merge-three-sorted-arrays) | LeetCode 88 (variant) |
+| 19 | [Simplify Path](#19-simplify-path) | LeetCode 71 |
+| 20 | [Binary Tree Vertical Order Traversal](#20-binary-tree-vertical-order-traversal) | LeetCode 314 |
+| 21 | [Find a Local Minimum](#21-find-a-local-minimum) | LeetCode 162 (variant) |
+| 22 | [Randomized Container (Insert / Pop Random)](#22-randomized-container-insert--pop-random) | LeetCode 380 (variant) |
+| 23 | [Count Distinct Values in a Sorted Array](#23-count-distinct-values-in-a-sorted-array) | — |
+| 24 | [System Design: Design Twitter](#24-system-design-design-twitter) | System design |
+| 25 | [Plan Round Trip With Minimum Flight Cost](#25-plan-round-trip-with-minimum-flight-cost) | — |
+| 26 | [Maximum Characters From Non-Overlapping Words](#26-maximum-characters-from-non-overlapping-words) | AI-enabled |
+| 27 | [Merge Two Sorted Interval Lists](#27-merge-two-sorted-interval-lists) | LeetCode 56 (variant) |
+| 28 | [System Design: Trending Hashtags](#28-system-design-trending-hashtags) | System design |
 
 ---
 
@@ -375,3 +390,451 @@ nums = [1, 1, 1], k = 2  ->  2
 2. At each index, a subarray ending here sums to `k` iff some earlier prefix
    equals `prefix - k`; add that count to the answer, then record the current
    prefix. Time `O(n)`, space `O(n)`.
+
+---
+
+## 14. Best Rating-to-Price Index
+
+**Problem.** Given two equal-length integer arrays `rating` and `prices`, return
+the index `i` that maximizes the ratio `rating[i] / prices[i]`. If several indices
+tie for the maximum, return the **smallest** such index. Prices are positive.
+
+**Example**
+
+```text
+rating = [4, 2, 7], prices = [2, 1, 5]  ->  0
+(ratios 2.0, 2.0, 1.4; indices 0 and 1 tie, so keep the smaller index 0)
+```
+
+**Notes**
+
+- Avoid floating-point division. Compare two ratios `a/b` and `c/d` by
+  cross-multiplying: `a/b > c/d` iff `a*d > c*b` (valid because prices are
+  positive, so the inequality direction is preserved).
+
+**Approach**
+
+1. Track the best index, starting at 0.
+2. For each later index, compare it against the current best via
+   cross-multiplication; update only on a **strict** improvement so ties keep the
+   earlier (smaller) index.
+
+---
+
+## 15. Complete Round-Trip Missions
+
+**Problem.** You must complete `missions` round trips between A and B. `a2b` lists
+the A→B departure times and `b2a` the B→A departure times, each sorted ascending.
+Starting at time `start`, each round trip boards the earliest A→B departure that
+is **not earlier than** the current time, then the earliest B→A departure not
+earlier than that. Return the time at which all missions are finished.
+
+**Example**
+
+```text
+a2b = [1, 3, 5, 7], b2a = [2, 4, 6, 8], missions = 2, start = 0  ->  4
+(trip 1: A->B at 1, B->A at 2; trip 2: A->B at 3, B->A at 4)
+```
+
+**Notes**
+
+- "Not earlier than" means `>=`, so a connection may leave at the exact current
+  time.
+- Assumes enough departures exist to complete every mission.
+
+**Approach**
+
+1. Keep a running `current` time (initially `start`).
+2. For each mission, binary-search `a2b` for the first time `>= current` and
+   advance `current` to it; then do the same in `b2a`.
+3. After `missions` iterations, `current` is the answer.
+
+---
+
+## 16. Apply Matrix Commands
+
+**Problem.** Given a 2D array and a list of commands, apply the commands in order
+and return the resulting matrix. Supported commands:
+
+```text
+("swap_row", i, j)     swap rows i and j
+("swap_col", i, j)     swap columns i and j
+("reverse_row", i)     reverse row i
+("reverse_col", i)     reverse column i
+("rotate",)            rotate the whole matrix 90 degrees clockwise
+```
+
+**Example**
+
+```text
+matrix = [[1, 2], [3, 4]], commands = [("rotate",), ("reverse_row", 0)]  ->  [[1, 3], [4, 2]]
+(rotate -> [[3, 1], [4, 2]]; then reverse row 0)
+```
+
+**Approach**
+
+1. Row/column swaps and reversals are direct index manipulations.
+2. Implement a 90° clockwise rotation as a **transpose** (swap rows with columns)
+   followed by **reversing each row**.
+
+---
+
+## 17. Count Access-Code Pairs
+
+**Problem.** Given a list of strings `words` and a target string `accesscode`,
+count the ordered pairs of indices `(i, j)` such that `words[i] + words[j]`
+equals `accesscode`. The two indices are chosen independently, so a pair may
+reuse the same index when both halves are equal.
+
+**Example**
+
+```text
+words = ["a", "b", "ab", "c"], accesscode = "ab"  ->  1
+("a" + "b" = "ab")
+```
+
+**Approach**
+
+1. Count how many times each string appears in `words`.
+2. Split `accesscode` at every position into a `left` and `right` part; each split
+   is one way to form the code, contributing `count[left] * count[right]` pairs.
+3. Sum those products over all split positions.
+
+---
+
+## 18. Merge Three Sorted Arrays
+
+> **LeetCode 88** (variant)
+
+**Problem.** Given three arrays sorted in ascending order, merge them into a
+single ascending array with all duplicates removed — both repeats within one
+array and values shared across arrays.
+
+**Example**
+
+```text
+a = [1, 2, 5], b = [2, 3], c = [3, 6]  ->  [1, 2, 3, 5, 6]
+```
+
+**Approach**
+
+1. Keep one index per array. Repeatedly take the smallest value among the three
+   current heads.
+2. Advance every pointer whose head equals that value (drops cross-array
+   duplicates), and append it only if it differs from the last value written
+   (drops within-array duplicates).
+3. Continue until all three arrays are exhausted. (`heapq.merge(a, b, c)` plus a
+   consecutive-dedup pass is an idiomatic one-line alternative.)
+
+---
+
+## 19. Simplify Path
+
+> **LeetCode 71**
+
+**Problem.** Given an absolute Unix-style `path` (it always begins with `/`),
+return its canonical form. In the canonical path: a single `.` means the current
+directory, `..` means the parent directory, multiple consecutive slashes collapse
+to one, and there is no trailing slash (except the root `/` itself).
+
+**Example**
+
+```text
+"/home/"            ->  "/home"
+"/../"              ->  "/"
+"/home//foo/"       ->  "/home/foo"
+"/a/./b/../../c/"   ->  "/c"
+```
+
+**Notes**
+
+- `..` at the root stays at the root.
+
+**Approach**
+
+1. Split on `/` and walk the parts with a stack: skip `""` and `.`, pop on `..`
+   (if the stack is non-empty), otherwise push the name.
+2. Join the stack with `/`, prefixed by a leading `/` (yielding `/` when empty).
+
+---
+
+## 20. Binary Tree Vertical Order Traversal
+
+> **LeetCode 314**
+
+**Problem.** Given the root of a binary tree, return its vertical order
+traversal — node values grouped by column from leftmost to rightmost. Within a
+column, order nodes top to bottom; when two nodes share the same row **and**
+column, order them left to right.
+
+**Example**
+
+```text
+    3            ->  [[9], [3, 15], [20], [7]]
+   / \
+  9  20
+     / \
+    15  7
+```
+
+**Notes**
+
+- Assign the root column `0`; a left child is `col - 1`, a right child `col + 1`.
+  The row (depth) increases by 1 each level.
+
+**Approach**
+
+1. DFS from the root carrying `(row, col)`, appending `(row, value)` into a map
+   keyed by column. Visiting the left child before the right records same-depth
+   nodes left to right.
+2. Emit columns in increasing order; within each column, stable-sort by row (the
+   DFS order already breaks ties left to right).
+3. DFS uses the recursion stack (`O(height)`) instead of an explicit BFS queue
+   (`O(width)`) — the memory trade-off noted in the prompt.
+
+---
+
+## 21. Find a Local Minimum
+
+> **LeetCode 162** (variant)
+
+**Problem.** Given an integer array `nums` in which adjacent elements differ,
+return the index of any local minimum — an element strictly smaller than both
+neighbors. Treat the out-of-bounds neighbors before index 0 and after the last
+index as `+∞`, so a local minimum always exists. Solve **iteratively** in
+`O(log n)`.
+
+**Example**
+
+```text
+[3, 2, 1, 2, 3]  ->  2   (nums[2] = 1 is smaller than both neighbors)
+```
+
+**Notes**
+
+- This mirrors Find Peak Element (LeetCode 162) with the comparison flipped to
+  seek a valley instead of a peak.
+- Each step needs only a single comparison (`nums[mid]` vs `nums[mid + 1]`),
+  which minimizes the condition checks (the interview follow-up).
+
+**Approach**
+
+1. Binary search with `lo = 0`, `hi = n - 1`. At `mid`, if
+   `nums[mid] > nums[mid + 1]` the slope descends to the right, so a local min
+   lies in `[mid + 1, hi]` (`lo = mid + 1`); otherwise it lies in `[lo, mid]`
+   (`hi = mid`).
+2. The window shrinks to a single index, which is a local minimum.
+3. Alternative `O(n)` scan: keep a `prev` value (initially `+∞`) and return the
+   first index `i` where `prev > nums[i] < next`.
+
+---
+
+## 22. Randomized Container (Insert / Pop Random)
+
+> **LeetCode 380** (variant)
+
+**Problem.** Design a container supporting two operations, each in average
+`O(1)`:
+
+- `insert(element)` — add an element.
+- `pop_random()` — remove and return one element, with every current element
+  equally likely.
+
+**Example**
+
+```text
+insert(1); insert(2); insert(3)
+pop_random()  ->  one of 1, 2, 3 (uniformly), and it is removed from the container
+```
+
+**Notes**
+
+- Assumes distinct elements (the LeetCode 380 baseline); to allow duplicates,
+  map each value to a *set* of indices (LeetCode 381).
+
+**Approach**
+
+1. Keep a dynamic array of the elements plus a hash map from element to its index
+   in that array.
+2. `insert`: append to the array and record its index in the map.
+3. `pop_random`: pick a uniformly random index; swap that element with the last
+   one (updating the moved element's stored index), pop the last slot, and delete
+   the map entry. Swapping to the end makes removal `O(1)` instead of `O(n)`.
+
+---
+
+## 23. Count Distinct Values in a Sorted Array
+
+**Problem.** Given a sorted array holding only `K` distinct values, where `K` is
+much smaller than the length `n`, return `K`. Aim to beat the obvious `O(n)`
+scan.
+
+**Example**
+
+```text
+[1, 1, 2, 2, 2, 3]  ->  3
+```
+
+**Notes**
+
+- The `O(n)` baseline walks the array once, using a `prev` value to count each
+  time the value changes.
+- Watch the boundary: when jumping past a run of equal values, land on the
+  **first** index strictly greater, or a value can get counted twice.
+
+**Approach**
+
+1. Baseline `O(n)`: scan once and increment the count whenever the current value
+   differs from the previous one.
+2. `O(K log n)`: for each distinct value at index `i`, binary-search the first
+   index whose value is strictly greater (`bisect_right`), jump there, and
+   repeat. Each of the `K` values costs one `O(log n)` search.
+3. Since `K << n`, galloping/exponential search from each boundary refines this
+   to `O(K log(n/K))`.
+
+---
+
+## 24. System Design: Design Twitter
+
+> **System design** (discussion only — no reference solution)
+
+**Problem.** Design a simplified Twitter-like service that supports three core
+operations:
+
+- **add a post** — a user publishes a post,
+- **retrieve posts** — e.g. a user's timeline / feed,
+- **search posts** — find posts matching a query.
+
+**Discussion areas.** Work through the design roughly in this order:
+
+1. High-level architectural design
+2. API design
+3. Data streaming
+4. Database selection
+5. Service scaling
+6. Feature workflow walk-through
+
+---
+
+## 25. Plan Round Trip With Minimum Flight Cost
+
+**Problem.** Given a departure-cost array `D` and a return-cost array `R` (both
+indexed by day, same length), plan a round trip whose departure day is strictly
+before the return day. Return:
+
+1. the minimum total cost `D[i] + R[j]` over all `i < j`, and
+2. the chosen departure index `i` and return index `j`. If several pairs tie for
+   the minimum cost, prefer the **earliest departure**; if still tied, the
+   **latest return**.
+
+**Example**
+
+```text
+D = [4, 1, 3], R = [5, 2, 4]  ->  cost 5 at (departure = 1, return = 2)
+```
+
+**Notes**
+
+- Requires `i < j` — you must depart before you return.
+- Tie-break precedence: (1) minimum cost, (2) earliest departure index, (3)
+  latest return index.
+
+**Approach**
+
+1. Scan the return day `j` from left to right while maintaining the minimum
+   departure cost seen in `D[0..j-1]`, keeping its **earliest** index on ties.
+2. For each `j`, the best round trip returning on day `j` is
+   `min_departure + R[j]`; compare it against the global best using the tie-break
+   rules above.
+3. One pass — `O(n)` time, `O(1)` space.
+
+---
+
+## 26. Maximum Characters From Non-Overlapping Words
+
+> **AI-enabled coding** (related to LeetCode 1239)
+
+**Problem.** Given a list of lowercase words, choose a subset in which no two
+words share any common character (their letter sets are pairwise disjoint), so
+that the subset captures the maximum total number of distinct characters. Return
+that maximum count.
+
+**Example**
+
+```text
+["ab", "cd", "abc"]  ->  4   (pick "ab" + "cd"; "abc" overlaps both)
+```
+
+**Notes**
+
+- "Not overlapping" is defined on letter *sets*: two words conflict if they share
+  any letter. A word with repeated letters (e.g. `"aa"`) contributes only its
+  distinct letters.
+- Assumes the 26 lowercase letters, so each word fits in a 26-bit mask.
+
+**Approach**
+
+1. Encode each word as a 26-bit bitmask of its letters; its contribution is the
+   popcount (number of distinct letters).
+2. Backtrack over the words, keeping a `used` mask of letters already taken. A
+   word can be added only if `used & mask == 0`.
+3. Track the best total distinct-character count across all reachable subsets.
+   (Reconstructing the actual subset is a small extension.)
+
+---
+
+## 27. Merge Two Sorted Interval Lists
+
+> **LeetCode 56** (variant)
+
+**Problem.** Given two lists of intervals `A` and `B`, each already sorted by
+start and internally non-overlapping, merge them into a single list sorted by
+start with all overlapping (or touching) intervals coalesced.
+
+**Example**
+
+```text
+A = [[1, 3], [5, 7]], B = [[2, 4], [6, 8]]  ->  [[1, 4], [5, 8]]
+```
+
+**Notes**
+
+- Intervals that only touch at an endpoint (e.g. `[1, 3]` and `[3, 5]`) are
+  merged into `[1, 5]`. Switch the comparison to strict `<` if touching intervals
+  should stay separate.
+
+**Approach**
+
+1. Two-pointer merge of `A` and `B` by start into one start-sorted sequence (like
+   merging two sorted arrays) — `O(n + m)`.
+2. Sweep the sequence, extending the last kept interval's end when the next
+   interval starts at or before it, otherwise appending a new interval.
+
+---
+
+## 28. System Design: Trending Hashtags
+
+> **System design** (discussion only — no reference solution)
+
+**Problem.** Design a backend system that detects and serves trending hashtags
+from Facebook posts. Requirements:
+
+- **Timeliness** — a trend should surface while the real-world event is still
+  happening; target end-to-end latency of ~1 minute.
+- **Recency window** — consider posts from the last 24 hours, weighting more
+  recent posts more heavily.
+- **Popularity** — a trend should be of interest to many people in the community.
+- **Novelty** — a trend should be about something new: people were not posting
+  about it before, or at least not with the same intensity.
+
+**Discussion areas.**
+
+1. High-level architecture (ingestion → stream processing → scoring → serving)
+2. Streaming ingestion of posts and hashtag extraction
+3. Windowed counting over a 24-hour horizon with recency weighting (time-decay /
+   sliding windows)
+4. Scoring model combining popularity and novelty (spike/velocity vs. a
+   historical baseline)
+5. Storage choices for counts, baselines, and the ranked trend list
+6. Serving the top trends with ~1-minute freshness; caching and read scaling
+7. Scaling, sharding by hashtag, fault tolerance, and handling hot keys / spam
