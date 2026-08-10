@@ -4,6 +4,12 @@ Each entry has a **problem statement**, an **example** where helpful,
 **notes/constraints**, and a suggested **approach**. Reference solutions live
 in [`solutions.py`](./solutions.py).
 
+Full multi-round interview loops (a whole VO written up in one file) live under
+[`interviews/`](./interviews/) — e.g.
+[Product VO — 4-round AI-Enabled loop](./interviews/product-vo-ai-enabled.md).
+Standalone system-design write-ups live under
+[`system-design/`](./system-design/).
+
 ## Contents
 
 | # | Question | Reference |
@@ -36,6 +42,10 @@ in [`solutions.py`](./solutions.py).
 | 26 | [Maximum Characters From Non-Overlapping Words](#26-maximum-characters-from-non-overlapping-words) | AI-enabled |
 | 27 | [Merge Two Sorted Interval Lists](#27-merge-two-sorted-interval-lists) | LeetCode 56 (variant) |
 | 28 | [System Design: Trending Hashtags](#28-system-design-trending-hashtags) | System design |
+| 29 | [Banking System](#29-banking-system) | multi-level |
+| 30 | [Diameter of Binary Tree](#30-diameter-of-binary-tree) | LeetCode 543 |
+| 31 | [Palindromic Substrings](#31-palindromic-substrings) | LeetCode 647 |
+| 32 | [System Design: Web Crawler](#32-system-design-web-crawler) | System design |
 
 ---
 
@@ -838,3 +848,166 @@ from Facebook posts. Requirements:
 5. Storage choices for counts, baselines, and the ranked trend list
 6. Serving the top trends with ~1-minute freshness; caching and read scaling
 7. Scaling, sharding by hashtag, fault tolerance, and handling hot keys / spam
+
+---
+
+## 29. Banking System
+
+> **Multi-level assessment** (CodeSignal Industry Coding Framework)
+
+**Problem.** Build a banking system that processes account operations. Every
+operation carries an integer `timestamp` (strictly increasing across calls). The
+assessment has four progressively harder levels; you must pass all tests in a
+level before the next is revealed.
+
+**Level 1 — accounts & transfers**
+
+```text
+create_account(timestamp, account_id)          -> True if created, False if it exists
+deposit(timestamp, account_id, amount)          -> new balance, or None if no account
+transfer(timestamp, source_id, target_id, amount)
+    -> source's new balance, or None if: either account is missing, source ==
+       target, or the source has insufficient funds
+```
+
+**Level 2 — spending analytics**
+
+```text
+top_spenders(timestamp, n)  -> the top n accounts by total OUTGOING amount
+                               (money transferred/paid out), formatted
+                               "id(total)", sorted by total desc then id asc
+```
+
+**Level 3 — scheduled payments & cashback**
+
+```text
+pay(timestamp, account_id, amount)
+    -> withdraws `amount`, schedules a 2% cashback (floored) refunded 24h later
+       (86_400_000 ms); returns a payment id like "payment1", or None if the
+       account is missing or underfunded. Payment ids increment globally.
+get_payment_status(timestamp, account_id, payment_id)
+    -> "IN_PROGRESS" or "CASHBACK_RECEIVED", or None if the account/payment is
+       invalid or the payment doesn't belong to that account
+```
+
+**Level 4 — merging accounts & historical balance**
+
+```text
+merge_accounts(timestamp, account_id1, account_id2)
+    -> fold account2 into account1 (balances, outgoing totals, and pending
+       cashbacks all combine); account2 ceases to exist. Returns True/False.
+get_balance(timestamp, account_id, time_at)
+    -> the balance of the account at `time_at`, or None if the account did not
+       exist then
+```
+
+**Notes**
+
+- Cashback is applied **lazily**: before handling any operation, process all
+  scheduled cashbacks whose refund time is `<= current timestamp`. `pay` counts
+  toward outgoing spend for `top_spenders`; the cashback refund does **not**.
+- `merge` re-homes account2's pending cashbacks onto account1, and account2's
+  historical balances remain queryable via account1 for times before the merge.
+
+**Approach**
+
+1. Store per-account balance plus a running `outgoing` total (for
+   `top_spenders`) and a time-sorted balance history (for `get_balance`).
+2. Keep scheduled cashbacks in a min-heap/queue keyed by refund time; drain the
+   due ones at the start of every operation so state is current.
+3. `top_spenders`: sort accounts by `(-outgoing, id)` and take `n`.
+4. `merge`: sum balances/outgoing, reassign account2's pending cashbacks to
+   account1, and keep account2's history so `get_balance` still resolves it.
+
+---
+
+## 30. Diameter of Binary Tree
+
+> **LeetCode 543**
+
+**Problem.** Given the root of a binary tree, return the length of its
+**diameter** — the number of edges on the longest path between any two nodes.
+The path may or may not pass through the root.
+
+**Example**
+
+```text
+    1          ->  3   (path 4 -> 2 -> 1 -> 3, i.e. 3 edges)
+   / \
+  2   3
+ / \
+4   5
+```
+
+**Notes**
+
+- Length is measured in **edges**, not nodes; a single-node tree has diameter 0.
+
+**Approach**
+
+1. DFS that returns the height (in edges) of each subtree.
+2. At every node, the longest path *through* it is `left_height + right_height`;
+   keep a running maximum of that across all nodes.
+3. Return the maximum. Time `O(n)`, space `O(height)` for the recursion.
+
+---
+
+## 31. Palindromic Substrings
+
+> **LeetCode 647**
+
+**Problem.** Given a string `s`, return the number of **palindromic substrings**
+in it. Substrings at different start/end positions count separately, even if they
+are identical in content.
+
+**Example**
+
+```text
+"abc"  ->  3   ("a", "b", "c")
+"aaa"  ->  6   ("a", "a", "a", "aa", "aa", "aaa")
+```
+
+**Approach (expand around center)**
+
+1. Every palindrome has a center: a single character (odd length) or the gap
+   between two characters (even length) — `2n - 1` centers in all.
+2. From each center, expand outward while the two ends match, counting one
+   palindrome per successful expansion.
+3. Time `O(n²)`, space `O(1)`. (A DP table is `O(n²)` time and space; Manacher's
+   algorithm brings it down to `O(n)`.)
+
+---
+
+## 32. System Design: Web Crawler
+
+> **System design** — full write-up in
+> [`system-design/web-crawler.md`](./system-design/web-crawler.md)
+
+**Problem.** Design a distributed web crawler that runs on a fleet of ~10,000
+machines. It should fetch a large fraction of the web, extract links to keep
+discovering new pages, store the crawled content, and periodically re-crawl to
+stay fresh — all while behaving politely toward the sites it visits.
+
+**Requirements**
+
+- **Scale** — ~10k fetcher machines; target on the order of tens of billions of
+  pages, hundreds of thousands of pages/sec aggregate.
+- **Politeness** — respect `robots.txt` and per-host rate limits; never overload
+  a site.
+- **Coverage & de-duplication** — avoid re-fetching the same URL and avoid
+  storing near-duplicate content.
+- **Freshness** — re-crawl pages at a rate that tracks how often they change.
+- **Fault tolerance** — survive machine failures with no lost or stuck work.
+
+**Discussion areas.**
+
+1. High-level architecture (URL Frontier → fetchers → parser → storage → link
+   re-injection)
+2. URL Frontier design (priority + politeness, host-based sharding)
+3. De-duplication (URL Bloom filters, content SimHash/MinHash)
+4. Storage (raw page blobs, metadata KV, link graph)
+5. Adaptive re-crawl scheduling for freshness
+6. Distributed coordination, sharding, and fault tolerance
+7. Traps, JS-rendered pages, DNS caching, and anti-abuse
+
+See the linked file for the detailed design.
