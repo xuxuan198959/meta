@@ -1270,6 +1270,306 @@ def count_palindromic_substrings(s: str) -> int:
     return total
 
 
+# ---------------------------------------------------------------------------
+# Q33. Remove Duplicates from Sorted Array (LeetCode 26)
+# ---------------------------------------------------------------------------
+# Remove duplicates in place from a non-decreasing array so each value appears
+# once, preserving order; return k, the number of uniques (nums[:k] holds them).
+#
+# Idea (two pointers): `slow` is the write index of the last unique kept; `fast`
+# scans ahead. Because the array is sorted, a value differs from nums[slow] iff
+# it is new, so we bump `slow` and write it there.
+#
+# Time O(n)   Space O(1)
+def remove_duplicates(nums: List[int]) -> int:
+    if not nums:
+        return 0
+    slow = 0                               # nums[:slow + 1] are the uniques so far
+    for fast in range(1, len(nums)):
+        if nums[fast] != nums[slow]:
+            slow += 1
+            nums[slow] = nums[fast]
+    return slow + 1
+
+
+# ---------------------------------------------------------------------------
+# Q34. Longest Increasing Path in a Matrix (LeetCode 329)
+# ---------------------------------------------------------------------------
+# Return the length of the longest strictly increasing path, moving only up /
+# down / left / right.
+#
+# Idea (DFS + memo): best(r, c) = longest increasing path STARTING at (r, c).
+# Since moves only go to strictly greater values, the move graph is a DAG, so a
+# cached best(r, c) never changes -- memoize it. Answer is the max over cells.
+#
+# Time O(m * n)   Space O(m * n)
+def longest_increasing_path(matrix: List[List[int]]) -> int:
+    if not matrix or not matrix[0]:
+        return 0
+    rows, cols = len(matrix), len(matrix[0])
+    memo: dict = {}
+
+    def best(r: int, c: int) -> int:
+        if (r, c) in memo:
+            return memo[(r, c)]
+        longest = 1                        # the cell on its own
+        for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < rows and 0 <= nc < cols \
+                    and matrix[nr][nc] > matrix[r][c]:
+                longest = max(longest, 1 + best(nr, nc))
+        memo[(r, c)] = longest
+        return longest
+
+    return max(best(r, c) for r in range(rows) for c in range(cols))
+
+
+# ---------------------------------------------------------------------------
+# Q35. Valid Number (LeetCode 65)
+# ---------------------------------------------------------------------------
+# Return whether s is a valid number: [sign] (integer | decimal) [exponent].
+#
+# Idea: one left-to-right scan with two helpers -- skip an optional sign, and
+# skip a run of digits (reporting whether any were seen). Parse the mantissa
+# ([sign] digits? [. digits?], needing a digit somewhere), then an optional
+# e/E followed by a signed integer. Valid iff the scan consumes the whole string.
+#
+# Time O(n)   Space O(1)
+def is_number(s: str) -> bool:
+    n = len(s)
+    if n == 0:
+        return False
+
+    def skip_sign(j: int) -> int:
+        return j + 1 if j < n and s[j] in "+-" else j
+
+    def skip_digits(j: int) -> tuple:
+        start = j
+        while j < n and s[j].isdigit():
+            j += 1
+        return j, j > start                # (new index, saw >= 1 digit)
+
+    i = skip_sign(0)
+    i, int_digits = skip_digits(i)
+    frac_digits = False
+    if i < n and s[i] == ".":
+        i += 1
+        i, frac_digits = skip_digits(i)
+    if not (int_digits or frac_digits):    # e.g. ".", "+", "e"
+        return False
+    if i < n and s[i] in "eE":             # optional exponent
+        i = skip_sign(i + 1)
+        i, exp_digits = skip_digits(i)
+        if not exp_digits:
+            return False
+    return i == n
+
+
+# ---------------------------------------------------------------------------
+# Q36. Best Time to Buy and Sell Stock (LeetCode 121)
+# ---------------------------------------------------------------------------
+# One buy then a later sell; return the max profit (0 if none is profitable).
+#
+# Idea: sweep once, tracking the cheapest price seen so far; the best sale today
+# is price - min_so_far. Keep the running maximum of that.
+#
+# Time O(n)   Space O(1)
+def max_profit(prices: List[int]) -> int:
+    min_price = float("inf")
+    best = 0
+    for p in prices:
+        if p < min_price:                  # cheaper day to have bought
+            min_price = p
+        elif p - min_price > best:         # better day to sell
+            best = p - min_price
+    return best
+
+
+# ---------------------------------------------------------------------------
+# Q37. Collapse Adjacent Duplicate Letters (open-ended; cf. LeetCode 1047)
+# ---------------------------------------------------------------------------
+# Repeatedly remove a group of adjacent identical letters. Removing a group can
+# merge its former neighbors into a new group, so the order matters and different
+# orders give different results -- the interviewer accepts either. Two semantics:
+#
+#   collapse_pairs: cancel two equal adjacent letters (confluent -> unique).
+#                   "abbaa" -> "a".  Time O(n), space O(n).
+#   collapse_runs:  delete the leftmost maximal run of length >= 2, restarting so
+#                   cascading merges are caught.  "abbaa" -> "".  Time O(n^2).
+def collapse_pairs(s: str) -> str:
+    stack: List[str] = []
+    for ch in s:
+        if stack and stack[-1] == ch:      # meets its twin -> both vanish
+            stack.pop()
+        else:
+            stack.append(ch)
+    return "".join(stack)
+
+
+def collapse_runs(s: str) -> str:
+    chars = list(s)
+    changed = True
+    while changed:
+        changed = False
+        i = 0
+        while i < len(chars):
+            j = i
+            while j < len(chars) and chars[j] == chars[i]:
+                j += 1
+            if j - i >= 2:                 # a whole run of length >= 2
+                del chars[i:j]
+                changed = True
+                break                      # restart -- a merge may have formed
+            i = j
+    return "".join(chars)
+
+
+# ---------------------------------------------------------------------------
+# Q40. Keypad Combinations with Grouped Presses (LeetCode 17 variant)
+# ---------------------------------------------------------------------------
+# Each digit maps to letters (1->ABC ... 7->ST, 9->XY, 0->Z). A run of k
+# consecutive identical digits d may be split into groups; a group of size k
+# picks the k-th letter of d's mapping, with k <= len(mapping[d]). Return every
+# string formed by a valid partition (any order).
+#
+# Idea (backtracking): at index i, open a group on digit d = s[i] and extend it
+# while the next char stays d and the group size <= letters available; a size-k
+# group emits mapping[d][k-1]. Recurse past the group; record at the end. Groups
+# can only span identical consecutive digits, so runs are handled naturally.
+#
+# Time O(#combinations * n)   Space O(n) recursion (+ output)
+def keypad_combinations(digits: str) -> List[str]:
+    mapping = {
+        "1": "ABC", "2": "DEF", "3": "GHI", "4": "JKL", "5": "MNO",
+        "6": "PQR", "7": "ST", "8": "UVW", "9": "XY", "0": "Z",
+    }
+    n = len(digits)
+    results: List[str] = []
+    path: List[str] = []
+
+    def backtrack(i: int) -> None:
+        if i == n:
+            results.append("".join(path))
+            return
+        d = digits[i]
+        letters = mapping[d]
+        k = 1
+        # extend the group while digits stay identical and size <= available
+        while i + k <= n and digits[i + k - 1] == d and k <= len(letters):
+            path.append(letters[k - 1])        # a size-k group -> the k-th letter
+            backtrack(i + k)
+            path.pop()
+            k += 1
+
+    backtrack(0)
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Q42. Diagonal Traverse (LeetCode 498)
+# ---------------------------------------------------------------------------
+# Return all elements of an m x n matrix in zig-zag diagonal order.
+#
+# Idea: cells on one diagonal share r + c = d. Walk d from 0..m+n-2; even
+# diagonals go up-right (row decreasing), odd diagonals go down-left, which gives
+# the alternating zig-zag. Start each diagonal at its clamped endpoint.
+#
+# Time O(m * n)   Space O(1) extra (excluding output)
+def find_diagonal_order(mat: List[List[int]]) -> List[int]:
+    if not mat or not mat[0]:
+        return []
+    m, n = len(mat), len(mat[0])
+    result: List[int] = []
+    for d in range(m + n - 1):
+        if d % 2 == 0:                     # going up-right
+            r = min(d, m - 1)
+            c = d - r
+            while r >= 0 and c < n:
+                result.append(mat[r][c])
+                r -= 1
+                c += 1
+        else:                              # going down-left
+            c = min(d, n - 1)
+            r = d - c
+            while c >= 0 and r < m:
+                result.append(mat[r][c])
+                r += 1
+                c -= 1
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Q43. Sum Root to Leaf Numbers (LeetCode 129)
+# ---------------------------------------------------------------------------
+# Each root-to-leaf path spells a number (concatenated digits); return their sum.
+#
+# Idea: DFS carrying the number built so far; at each node do cur = cur*10 + val,
+# and at a leaf contribute cur. (Reuses TreeNode from Q8.)
+#
+# Time O(n)   Space O(height)
+def sum_numbers(root) -> int:
+    def dfs(node, cur: int) -> int:
+        if node is None:
+            return 0
+        cur = cur * 10 + node.val
+        if node.left is None and node.right is None:     # leaf
+            return cur
+        return dfs(node.left, cur) + dfs(node.right, cur)
+
+    return dfs(root, 0)
+
+
+# ---------------------------------------------------------------------------
+# Q44. Nested List Weight Sum (LeetCode 339)
+# ---------------------------------------------------------------------------
+# Each integer has a weight equal to its depth (top level = 1). Return the sum
+# of every integer times its depth. Here a nested list is modeled as a Python
+# list holding ints and/or further lists.
+#
+# Idea: DFS; recurse into sublists with depth + 1, add int * depth for integers.
+#
+# Time O(total elements)   Space O(max depth)
+def depth_sum(nested: list) -> int:
+    def dfs(items: list, depth: int) -> int:
+        total = 0
+        for x in items:
+            if isinstance(x, list):
+                total += dfs(x, depth + 1)
+            else:
+                total += x * depth
+        return total
+
+    return dfs(nested, 1)
+
+
+# ---------------------------------------------------------------------------
+# Q45. Lowest Common Ancestor of a Binary Tree III (LeetCode 1650)
+# ---------------------------------------------------------------------------
+# Nodes carry a parent pointer and you're given only the two nodes (no root).
+# Find their lowest common ancestor.
+#
+# Idea (two pointers, like linked-list intersection): walk a and b up via parent;
+# when one hits the top (None), redirect it to the OTHER start node. After each
+# has walked its own path + the other's prefix, they meet at the LCA (both have
+# travelled the same total distance).
+#
+# Time O(h1 + h2)   Space O(1)
+class ParentTreeNode:
+    def __init__(self, val: int = 0):
+        self.val = val
+        self.left = None
+        self.right = None
+        self.parent = None
+
+
+def lowest_common_ancestor(p, q):
+    a, b = p, q
+    while a is not b:
+        a = a.parent if a else q
+        b = b.parent if b else p
+    return a
+
+
 def _run_self_tests() -> None:
     # Q1
     assert is_alien_sorted(["hello", "leetcode"], "hlabcdefgijkmnopqrstuvwxyz")
@@ -1619,6 +1919,84 @@ def _run_self_tests() -> None:
     assert count_palindromic_substrings("aba") == 4       # a, b, a, aba
     assert count_palindromic_substrings("") == 0
     assert count_palindromic_substrings("a") == 1
+
+    # Q33
+    a = [1, 1, 2]
+    assert remove_duplicates(a) == 2 and a[:2] == [1, 2]
+    b = [0, 0, 1, 1, 1, 2, 2, 3, 3, 4]
+    assert remove_duplicates(b) == 5 and b[:5] == [0, 1, 2, 3, 4]
+    assert remove_duplicates([]) == 0
+    assert remove_duplicates([7]) == 1
+
+    # Q34
+    assert longest_increasing_path([[9, 9, 4], [6, 6, 8], [2, 1, 1]]) == 4
+    assert longest_increasing_path([[3, 4, 5], [3, 2, 6], [2, 2, 1]]) == 4
+    assert longest_increasing_path([[1]]) == 1
+    assert longest_increasing_path([]) == 0
+
+    # Q35
+    for ok in ("0", "0.1", "2.", ".8", "-90E3", "3e+7", "+6e-1", "53.5e93"):
+        assert is_number(ok), ok
+    for bad in ("", ".", "e", "1e", "e3", "99e2.5", "--6", "-+3", "+", "abc"):
+        assert not is_number(bad), bad
+
+    # Q36
+    assert max_profit([7, 1, 5, 3, 6, 4]) == 5
+    assert max_profit([7, 6, 4, 3, 1]) == 0
+    assert max_profit([]) == 0
+    assert max_profit([3]) == 0
+
+    # Q37
+    assert collapse_pairs("abbaa") == "a"       # pairwise -> unique result
+    assert collapse_runs("abbaa") == ""         # whole-run -> full cancellation
+    assert collapse_pairs("abbaca") == "ca" == collapse_runs("abbaca")
+    assert collapse_pairs("") == "" == collapse_runs("")
+
+    # Q40
+    assert sorted(keypad_combinations("7772")) == ["SSSD", "STD", "TSD"]
+    assert sorted(keypad_combinations("2222")) == \
+        ["DDDD", "DDE", "DED", "DF", "EDD", "EE", "FD"]
+    assert keypad_combinations("123456") == ["ADGJMP"]
+    assert keypad_combinations("1") == ["A"]
+    assert sorted(keypad_combinations("77")) == ["SS", "T"]
+
+    # Q42
+    assert find_diagonal_order([[1, 2, 3], [4, 5, 6], [7, 8, 9]]) == \
+        [1, 2, 4, 7, 5, 3, 6, 8, 9]
+    assert find_diagonal_order([[1, 2], [3, 4]]) == [1, 2, 3, 4]
+    assert find_diagonal_order([]) == []
+
+    # Q43
+    assert sum_numbers(TreeNode(1, TreeNode(2), TreeNode(3))) == 25   # 12 + 13
+    # 495 + 491 + 40 = 1026
+    t129 = TreeNode(4, TreeNode(9, TreeNode(5), TreeNode(1)), TreeNode(0))
+    assert sum_numbers(t129) == 1026
+    assert sum_numbers(None) == 0
+
+    # Q44
+    assert depth_sum([[1, 1], 2, [1, 1]]) == 10          # 2*(1+1) + 1*2 + 2*(1+1)
+    assert depth_sum([1, [4, [6]]]) == 27                # 1 + 4*2 + 6*3
+    assert depth_sum([]) == 0
+
+    # Q45
+    nodes = {v: ParentTreeNode(v) for v in (3, 5, 1, 6, 2, 0, 8, 7, 4)}
+
+    def _link(par, left, right):
+        nodes[par].left = nodes.get(left)
+        nodes[par].right = nodes.get(right)
+        if left is not None:
+            nodes[left].parent = nodes[par]
+        if right is not None:
+            nodes[right].parent = nodes[par]
+
+    _link(3, 5, 1)
+    _link(5, 6, 2)
+    _link(1, 0, 8)
+    _link(2, 7, 4)
+    assert lowest_common_ancestor(nodes[5], nodes[1]) is nodes[3]
+    assert lowest_common_ancestor(nodes[5], nodes[4]) is nodes[5]   # 5 is an ancestor
+    assert lowest_common_ancestor(nodes[6], nodes[4]) is nodes[5]
+    assert lowest_common_ancestor(nodes[7], nodes[8]) is nodes[3]
 
     print("All self-tests passed.")
 
