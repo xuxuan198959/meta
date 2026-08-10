@@ -46,6 +46,19 @@ Standalone system-design write-ups live under
 | 30 | [Diameter of Binary Tree](#30-diameter-of-binary-tree) | LeetCode 543 |
 | 31 | [Palindromic Substrings](#31-palindromic-substrings) | LeetCode 647 |
 | 32 | [System Design: Web Crawler](#32-system-design-web-crawler) | System design |
+| 33 | [Remove Duplicates from Sorted Array](#33-remove-duplicates-from-sorted-array) | LeetCode 26 |
+| 34 | [Longest Increasing Path in a Matrix](#34-longest-increasing-path-in-a-matrix) | LeetCode 329 |
+| 35 | [Valid Number](#35-valid-number) | LeetCode 65 |
+| 36 | [Best Time to Buy and Sell Stock](#36-best-time-to-buy-and-sell-stock) | LeetCode 121 |
+| 37 | [Collapse Adjacent Duplicate Letters](#37-collapse-adjacent-duplicate-letters) | LeetCode 1047 (variant) |
+| 38 | [System Design: Message Queue Service](#38-system-design-message-queue-service) | System design |
+| 39 | [System Design: Taxi Request Service](#39-system-design-taxi-request-service) | System design |
+| 40 | [Keypad Combinations with Grouped Presses](#40-keypad-combinations-with-grouped-presses) | LeetCode 17 (variant) |
+| 41 | [System Design: Instagram](#41-system-design-instagram) | System design |
+| 42 | [Diagonal Traverse](#42-diagonal-traverse) | LeetCode 498 |
+| 43 | [Sum Root to Leaf Numbers](#43-sum-root-to-leaf-numbers) | LeetCode 129 |
+| 44 | [Nested List Weight Sum](#44-nested-list-weight-sum) | LeetCode 339 |
+| 45 | [Lowest Common Ancestor III](#45-lowest-common-ancestor-iii) | LeetCode 1650 |
 
 ---
 
@@ -1011,3 +1024,416 @@ stay fresh — all while behaving politely toward the sites it visits.
 7. Traps, JS-rendered pages, DNS caching, and anti-abuse
 
 See the linked file for the detailed design.
+
+---
+
+## 33. Remove Duplicates from Sorted Array
+
+> **LeetCode 26**
+
+**Problem.** Given an integer array `nums` sorted in non-decreasing order, remove
+the duplicates **in place** so each unique value appears once, keeping the
+relative order. Return `k`, the number of unique elements; the first `k` slots of
+`nums` must hold those values (whatever is left beyond `k` doesn't matter).
+
+**Example**
+
+```text
+[0, 0, 1, 1, 1, 2, 2, 3, 3, 4]  ->  k = 5, nums[:5] = [0, 1, 2, 3, 4]
+```
+
+**Notes**
+
+- Must run in place with `O(1)` extra space — no second array.
+
+**Approach**
+
+1. Two pointers: `slow` marks the last unique slot (starts at 0), `fast` scans
+   ahead.
+2. Since the array is sorted, `nums[fast]` is new exactly when it differs from
+   `nums[slow]`; on that, advance `slow` and copy `nums[fast]` there.
+3. After the scan, `slow + 1` is the count of unique elements. Time `O(n)`,
+   space `O(1)`.
+
+---
+
+## 34. Longest Increasing Path in a Matrix
+
+> **LeetCode 329**
+
+**Problem.** Given an `m x n` integer matrix, return the length of the longest
+**strictly increasing** path. From a cell you may step to an adjacent cell (up,
+down, left, or right) with a strictly greater value; no diagonal moves and no
+stepping off the grid.
+
+**Example**
+
+```text
+[[9, 9, 4],
+ [6, 6, 8],
+ [2, 1, 1]]   ->  4   (path 1 -> 2 -> 6 -> 9)
+```
+
+**Notes**
+
+- Because moves only go to strictly greater values, the graph of moves is a
+  **DAG** (edges always point low → high) — no cycles — which is what makes
+  memoization safe.
+
+**Approach**
+
+1. DFS from each cell for the longest increasing path **starting** there,
+   memoizing the result per cell.
+2. `best(r, c) = 1 + max(best(neighbor))` over neighbors with a strictly greater
+   value (just `1` if none qualify).
+3. Answer is the max of `best` over all cells. Each cell is computed once →
+   `O(m·n)` time and space. (Equivalently, a topological / out-degree peeling
+   BFS.)
+
+---
+
+## 35. Valid Number
+
+> **LeetCode 65**
+
+**Problem.** Given a string `s`, return `true` if `s` is a valid number. A valid
+number is an optional sign, then an **integer** or a **decimal**, optionally
+followed by an **exponent**:
+
+- *integer* — optional `+`/`-`, then one or more digits.
+- *decimal* — optional `+`/`-`, then digits with a `.`; at least one digit must
+  appear on some side of the dot, e.g. `2.`, `.8`, `3.14`.
+- *exponent* — `e` or `E`, then an integer (which carries its own optional sign).
+
+**Example**
+
+```text
+"0" -> true    "-90E3" -> true    "3e+7" -> true    ".8" -> true
+"." -> false   "1e"    -> false   "e3"   -> false   "99e2.5" -> false
+```
+
+**Notes**
+
+- A lone `.`, a lone sign, or an exponent with no digits are all invalid.
+- `2.` and `.8` are valid — you only need at least one digit on *some* side of
+  the dot.
+
+**Approach**
+
+1. Single left-to-right scan with small helpers: skip an optional sign, then skip
+   a run of digits (reporting whether any were seen).
+2. Parse `[sign] digits? [. digits?]` and require at least one digit across the
+   integer and fractional parts.
+3. If an `e`/`E` follows, require a valid signed integer after it. Valid iff the
+   scan consumes the whole string. Time `O(n)`, space `O(1)`.
+
+---
+
+## 36. Best Time to Buy and Sell Stock
+
+> **LeetCode 121**
+
+**Problem.** Given an array `prices` where `prices[i]` is the price of a stock on
+day `i`, choose one day to buy and a later day to sell. Return the maximum profit
+achievable, or `0` if no profitable trade exists.
+
+**Example**
+
+```text
+[7, 1, 5, 3, 6, 4]  ->  5   (buy at 1, sell at 6)
+[7, 6, 4, 3, 1]     ->  0   (prices only fall)
+```
+
+**Approach**
+
+1. Track the minimum price seen so far and the best profit so far in one pass.
+2. At each day, update the running minimum, then check whether selling today
+   (`price - min_so_far`) beats the best profit.
+3. Return the best profit. Time `O(n)`, space `O(1)`.
+
+---
+
+## 37. Collapse Adjacent Duplicate Letters
+
+> **LeetCode 1047** (variant)
+
+**Problem.** Given a string of lowercase letters `a`–`z`, repeatedly remove a
+group of **adjacent identical** letters. Removing a group can bring its former
+neighbors together, which may form a new removable group — so the order of
+removals matters and **different orders can yield different final strings**. The
+interviewer accepts *any* valid reduction.
+
+**Example**
+
+```text
+"abbaa":
+  alt 1 -> ""    ("abbaa" => "aaa" => "")    remove "bb", the three a's merge, then cancel
+  alt 2 -> "a"   ("abbaa" => "abb" => "a")   remove the trailing "aa", then "bb"
+```
+
+**Notes**
+
+- If the operation is "cancel **two** adjacent equal letters" (pairwise), the
+  process is *confluent* — the result is unique (here `"a"`). Removing a whole
+  **run** at a time introduces the ambiguity, because an odd-length merged run
+  (`"aaa"`) can vanish entirely.
+
+**Approach**
+
+1. **Pairwise cancel (unique, `O(n)`):** push each letter on a stack; if it
+   equals the top, pop instead. The leftover stack is the unique
+   no-two-adjacent-equal string → `"abbaa"` gives `"a"`.
+2. **Whole-run collapse (`O(n²)`):** repeatedly delete the leftmost maximal run
+   of length `≥ 2`, restarting after each deletion so cascading merges are caught
+   → `"abbaa"` gives `""`.
+3. Both are valid under the interviewer's rule; pick one and state which
+   semantics you implemented.
+
+---
+
+## 38. System Design: Message Queue Service
+
+> **System design** — design write-up (**TODO**) in
+> [`system-design/message-queue.md`](./system-design/message-queue.md)
+
+**Problem.** Design a distributed, durable message/streaming queue service in the
+style of **Apache Kafka**: producers publish messages to topics, consumers
+subscribe and read them, with high throughput and strong durability.
+
+**Requirements**
+
+- **Pub/sub over topics** — producers write, consumers (in groups) read.
+- **Durability & ordering** — messages persisted; ordered within a partition.
+- **High throughput & horizontal scale** — partitioned across brokers.
+- **Delivery semantics** — at-least-once (ideally exactly-once) options.
+- **Fault tolerance** — replication so a broker loss doesn't lose data.
+- **Retention** — time/size-based; consumers track their own offsets.
+
+**Discussion areas.**
+
+1. High-level architecture (topics, partitions, brokers, producers, consumers)
+2. Partitioning strategy and per-partition ordering guarantees
+3. Storage / commit-log design (append-only segments, retention, compaction)
+4. Replication & consistency (leader/follower, in-sync replicas, acks)
+5. Consumer groups and offset management
+6. Delivery semantics (at-least-once vs. exactly-once, idempotent producers)
+7. Scaling, partition rebalancing, backpressure, and fault tolerance
+
+---
+
+## 39. System Design: Taxi Request Service
+
+> **System design** — design write-up (**TODO**) in
+> [`system-design/taxi-request-service.md`](./system-design/taxi-request-service.md)
+
+**Problem.** Design a ride/taxi request service (Uber-like) with a twist on the
+matching flow: instead of the platform auto-assigning one driver, a rider's
+request is broadcast to **many nearby drivers who can accept concurrently**; the
+**rider then selects one** of the accepting drivers; and the **selected driver
+must confirm** the rider's choice before the ride is booked.
+
+**Requirements**
+
+- **Fan-out** — broadcast a request to nearby available drivers.
+- **Concurrent accepts** — multiple drivers can offer to take the ride at once.
+- **Rider selection** — the rider picks one driver from those who accepted.
+- **Driver confirmation** — the chosen driver must confirm; handle decline or
+  timeout by falling back to the other responders.
+- **No double-booking** — a driver (and a rider) ends up on at most one ride;
+  resolve the races this creates.
+- **Real-time & location** — nearby-driver lookup and low-latency notifications.
+
+**Discussion areas.**
+
+1. High-level architecture (rider app, driver app, dispatch, location service)
+2. Driver-location ingestion and geo-indexing (nearby-driver queries)
+3. Request fan-out and how concurrent driver accepts are recorded
+4. Selection/confirmation **state machine** (requested → offered → selected →
+   confirmed → booked; with decline/timeout transitions)
+5. Concurrency & consistency (a driver bookable once; optimistic locking / atomic
+   compare-and-set; handling a driver who accepted several requests)
+6. Timeouts, declines, and fallback to remaining responders
+7. Real-time delivery (push / WebSockets) and scaling / geo-sharding / fault
+   tolerance
+
+---
+
+## 40. Keypad Combinations with Grouped Presses
+
+> **LeetCode 17** (variant)
+
+**Problem.** Given a string of digits `0`–`9` (phone key presses), return every
+letter combination it can produce. Each digit maps to letters:
+
+```text
+1->ABC  2->DEF  3->GHI  4->JKL  5->MNO  6->PQR  7->ST  8->UVW  9->XY  0->Z
+```
+
+Unlike LeetCode 17, **consecutive identical digits may be grouped**: a group of
+`k` identical presses of digit `d` selects the **k-th** letter of `d`'s mapping.
+The group size may not exceed the number of letters for that digit (so `7` groups
+at most 2, `0` only 1). Only *consecutive identical* digits can share a group.
+Return the results in any order.
+
+**Example**
+
+```text
+"7772"    ->  ["SSSD", "STD", "TSD"]
+              (7|7|7 = S,S,S; 7|77 = S,T; 77|7 = T,S; then 2 = D. "777" is invalid: no 3rd letter for 7)
+"2222"    ->  ["DDDD", "DDE", "DED", "DF", "EDD", "EE", "FD"]
+"123456"  ->  ["ADGJMP"]   (all distinct digits -> one letter each)
+```
+
+**Notes**
+
+- Group size is bounded by `len(mapping[d])`; e.g. `7` and `9` cap at 2, `0` at 1.
+- Because groups can't cross a change of digit, each maximal run of identical
+  digits is partitioned independently and the runs' results combine in order.
+
+**Approach**
+
+1. Backtracking over the string. At index `i`, open a group on digit `d = s[i]`
+   and extend it while the next character is still `d` **and** the group size
+   stays `≤ len(mapping[d])`.
+2. A group of size `k` contributes `mapping[d][k-1]`; recurse from `i + k`.
+3. When the index reaches the end, record the built string. Results can be
+   exponential in the input length; each has length `≤ n`.
+
+---
+
+## 41. System Design: Instagram
+
+> **System design** — design write-up (**TODO**) in
+> [`system-design/instagram.md`](./system-design/instagram.md)
+
+**Problem.** Design a photo/video-sharing service like **Instagram**: users
+upload media, follow other users, and see a home feed of posts from the people
+they follow, plus likes, comments, and an explore/search surface.
+
+**Requirements**
+
+- **Upload & serve media** — photos/videos stored durably and served fast
+  (blob store + CDN, multiple resolutions/transcodes).
+- **Follow graph** — users follow others; asymmetric relationships.
+- **Home feed** — recent posts from followees, ranked/reverse-chronological.
+- **Engagement** — likes and comments at scale.
+- **Read-heavy** — far more feed reads than writes; optimize for read latency.
+- **Extras to consider** — stories, explore/search, notifications.
+- **Live-auction extension** — users place bids and watch the highest price
+  update in real time; the interesting part is the concurrency control on the
+  hot `current_max_bid` row (**optimistic vs. pessimistic locking** under
+  celebrity-level contention). Written up in the linked file.
+
+**Discussion areas.**
+
+1. High-level architecture (upload service, media/blob store + CDN, feed service,
+   graph service)
+2. Media handling (upload flow, transcoding, thumbnails, CDN delivery)
+3. Feed generation — **fan-out on write vs. fan-out on read**, and the hybrid for
+   celebrity/hot accounts
+4. Data model & storage choices (posts, follow graph, counters for likes)
+5. Caching and read scaling for the feed
+6. Notifications and the explore/search surface
+7. Sharding, hot keys, and fault tolerance
+
+---
+
+## 42. Diagonal Traverse
+
+> **LeetCode 498**
+
+**Problem.** Given an `m x n` matrix, return all its elements in **zig-zag
+diagonal order**: the first diagonal goes up-right, the next goes down-left, and
+so on, alternating.
+
+**Example**
+
+```text
+[[1, 2, 3],
+ [4, 5, 6],   ->  [1, 2, 4, 7, 5, 3, 6, 8, 9]
+ [7, 8, 9]]
+```
+
+**Notes**
+
+- All cells on one diagonal share the same `row + col = d`; there are
+  `m + n - 1` diagonals.
+
+**Approach**
+
+1. Iterate `d` from `0` to `m + n - 2`. Even `d` → traverse the diagonal
+   up-right (row decreasing, col increasing); odd `d` → down-left.
+2. Start each diagonal at its clamped endpoint so you never step out of bounds.
+3. Time `O(m·n)`, `O(1)` extra space beyond the output.
+
+---
+
+## 43. Sum Root to Leaf Numbers
+
+> **LeetCode 129**
+
+**Problem.** Given a binary tree where every node holds a digit `0`–`9`, each
+root-to-leaf path spells a number (digits concatenated top to bottom). Return the
+sum of all those numbers.
+
+**Example**
+
+```text
+    1          ->  25   (path 1->2 = 12, path 1->3 = 13; 12 + 13)
+   / \
+  2   3
+```
+
+**Approach**
+
+1. DFS carrying the number built so far; at each node `cur = cur * 10 + val`.
+2. At a leaf, contribute `cur`; otherwise sum the contributions of both children.
+3. Time `O(n)`, space `O(height)`.
+
+---
+
+## 44. Nested List Weight Sum
+
+> **LeetCode 339**
+
+**Problem.** Given a nested list of integers, each integer has a **weight equal
+to its depth** (integers at the top level have depth 1, one level deeper depth 2,
+and so on). Return the sum of every integer multiplied by its depth.
+
+**Example**
+
+```text
+[[1, 1], 2, [1, 1]]  ->  10   (2*(1+1) + 1*2 + 2*(1+1))
+[1, [4, [6]]]        ->  27   (1*1 + 4*2 + 6*3)
+```
+
+**Approach**
+
+1. DFS over the structure with the current `depth` (starts at 1).
+2. For a sublist, recurse with `depth + 1`; for an integer, add `value * depth`.
+3. Time `O(total elements)`, space `O(max depth)`.
+
+---
+
+## 45. Lowest Common Ancestor III
+
+> **LeetCode 1650**
+
+**Problem.** Given two nodes `p` and `q` in a binary tree where **each node has a
+`parent` pointer** (and you are *not* given the root), return their lowest common
+ancestor.
+
+**Notes**
+
+- With parent pointers, walking from a node toward the root traces its ancestor
+  chain — the problem reduces to finding where two upward chains first meet.
+
+**Approach**
+
+1. Two pointers `a = p`, `b = q`, each walking up via `parent`.
+2. When a pointer reaches the top (`None`), redirect it to the *other* start
+   node. After each pointer has traversed its own chain plus the other's prefix,
+   they've covered equal distance and meet at the LCA.
+3. Time `O(h₁ + h₂)`, space `O(1)`. (Same trick as intersection of two linked
+   lists; an alternative is collecting one chain into a set and walking the other
+   up until a match.)
