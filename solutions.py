@@ -8,7 +8,7 @@ from typing import List
 
 
 # ---------------------------------------------------------------------------
-# Q1a. Verifying an Alien Dictionary (LeetCode 953)
+# Q1. Verifying an Alien Dictionary (LeetCode 953)
 # ---------------------------------------------------------------------------
 # Given `words` and an alien alphabet `order`, return True iff `words` is
 # sorted lexicographically according to `order`.
@@ -36,7 +36,7 @@ def is_alien_sorted(words: List[str], order: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Q1b. Valid Palindrome II (LeetCode 680)
+# Q2. Valid Palindrome II (LeetCode 680)
 # ---------------------------------------------------------------------------
 # Return True if `s` can become a palindrome after deleting at most one char.
 #
@@ -66,7 +66,7 @@ def valid_palindrome(s: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Q2.1 Evaluate an arithmetic expression without parentheses
+# Q3. Evaluate an arithmetic expression without parentheses
 # ---------------------------------------------------------------------------
 # Support + - * / on integers, e.g. "10/2+1*3+5" -> 13.
 # The input may be invalid -> raise ValueError (or return an error marker).
@@ -121,7 +121,7 @@ def calculate(expr: str) -> float:
 
 
 # ---------------------------------------------------------------------------
-# Q2.2 vmstat-style line monitor
+# Q4. vmstat-style line monitor
 # ---------------------------------------------------------------------------
 # Parse lines like the `vmstat` output. If the value in a chosen column
 # exceeds a threshold a cumulative X times, print an error/warning.
@@ -1271,19 +1271,19 @@ def count_palindromic_substrings(s: str) -> int:
 
 
 def _run_self_tests() -> None:
-    # Q1a
+    # Q1
     assert is_alien_sorted(["hello", "leetcode"], "hlabcdefgijkmnopqrstuvwxyz")
     assert not is_alien_sorted(["word", "world", "row"],
                                "worldabcefghijkmnpqstuvxyz")
     assert not is_alien_sorted(["apple", "app"],
                                "abcdefghijklmnopqrstuvwxyz")  # prefix case
 
-    # Q1b
+    # Q2
     assert valid_palindrome("aba")
     assert valid_palindrome("abca")      # delete 'c' (or 'b')
     assert not valid_palindrome("abc")
 
-    # Q2.1
+    # Q3
     assert calculate("10/2+1*3+5") == 13
     assert calculate("3+2*2") == 7
     assert calculate(" 3/2 ") == 1
@@ -1624,8 +1624,8 @@ def _run_self_tests() -> None:
 
 
 if __name__ == "__main__":
-    # With CLI args -> run the vmstat monitor (Q2.2). No args -> self-tests.
-    # Q2.2 usage, e.g.
+    # With CLI args -> run the vmstat monitor (Q4). No args -> self-tests.
+    # Q4 usage, e.g.
     #   vmstat 1 | python3 solutions.py --column 3 --threshold 1000000 --max-hits 3
     # (column 3 is 'free' in the sample header)
     if len(sys.argv) > 1:
