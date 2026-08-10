@@ -1049,6 +1049,227 @@ def merge_two_interval_lists(a: List[List[int]],
     return merged
 
 
+# ---------------------------------------------------------------------------
+# Q29. Banking System (CodeSignal-style 4-level assessment)
+# ---------------------------------------------------------------------------
+# A banking system processing timestamped account operations. Timestamps are
+# strictly increasing across calls; get_balance may query the past (time_at).
+# Built in four progressively harder levels.
+#
+# Level 1 - accounts & transfers:
+#     create_account(timestamp, account_id)      -> bool (False if it exists)
+#     deposit(timestamp, account_id, amount)     -> new balance, or None
+#     transfer(timestamp, src, dst, amount)      -> src balance, or None
+#         (None if either account is missing, src == dst, or funds too low)
+#
+# Level 2 - spending analytics:
+#     top_spenders(timestamp, n)                 -> ["id(total)", ...] by total
+#         OUTGOING amount desc, ties by id asc (all active accounts, top n)
+#
+# Level 3 - scheduled payments & cashback:
+#     pay(timestamp, account_id, amount)         -> "paymentN", or None
+#         withdraws amount; schedules a 2% (floored) cashback refunded 24h
+#         (86_400_000 ms) later. Counts as outgoing spend; the refund does not.
+#     get_payment_status(timestamp, account_id, payment_id)
+#         -> "IN_PROGRESS" / "CASHBACK_RECEIVED", or None if invalid / not owned
+#
+# Level 4 - merging & historical balance:
+#     merge_accounts(timestamp, id1, id2)        -> bool
+#         fold id2 into id1 (balances, outgoing totals, pending cashbacks all
+#         combine); id2 is absorbed. id2's history stays queryable for times
+#         before the merge.
+#     get_balance(timestamp, account_id, time_at) -> balance at time_at, or None
+#
+# Design: cashbacks are applied LAZILY -- before every operation, drain all
+# scheduled refunds whose time is <= the current timestamp (a min-heap keyed by
+# refund time). Each account keeps a running `outgoing` total and a time-sorted
+# balance history so get_balance is a binary search.
+class BankingSystem:
+    CASHBACK_DELAY = 86_400_000        # 24 hours in milliseconds
+
+    def __init__(self):
+        # account_id -> {balance, outgoing, created_at, merged_at, history}
+        self.accounts: dict = {}
+        self.cashbacks: list = []       # min-heap of (refund_time, seq, payment_id)
+        self.payments: dict = {}        # payment_id -> {account, amount, status}
+        self._payment_seq = 0
+        self._heap_seq = 0
+
+    # ---- helpers ----------------------------------------------------------
+    def _active(self, account_id):
+        rec = self.accounts.get(account_id)
+        return rec if rec and rec["merged_at"] is None else None
+
+    def _record(self, rec: dict, when: int, balance: int) -> None:
+        rec["balance"] = balance
+        rec["history"].append((when, balance))
+
+    def _process_cashbacks(self, timestamp: int) -> None:
+        """Apply every scheduled cashback due at-or-before `timestamp`."""
+        while self.cashbacks and self.cashbacks[0][0] <= timestamp:
+            refund_time, _seq, pid = heapq.heappop(self.cashbacks)
+            pay = self.payments[pid]
+            rec = self._active(pay["account"])   # re-homed by merges if needed
+            if rec is not None:
+                self._record(rec, refund_time, rec["balance"] + pay["amount"])
+            pay["status"] = "CASHBACK_RECEIVED"
+
+    # ---- Level 1 ----------------------------------------------------------
+    def create_account(self, timestamp: int, account_id: str) -> bool:
+        self._process_cashbacks(timestamp)
+        if account_id in self.accounts:
+            return False
+        self.accounts[account_id] = {
+            "balance": 0, "outgoing": 0, "created_at": timestamp,
+            "merged_at": None, "history": [(timestamp, 0)],
+        }
+        return True
+
+    def deposit(self, timestamp: int, account_id: str, amount: int):
+        self._process_cashbacks(timestamp)
+        rec = self._active(account_id)
+        if rec is None:
+            return None
+        self._record(rec, timestamp, rec["balance"] + amount)
+        return rec["balance"]
+
+    def transfer(self, timestamp: int, source_id: str, target_id: str,
+                 amount: int):
+        self._process_cashbacks(timestamp)
+        src = self._active(source_id)
+        dst = self._active(target_id)
+        if src is None or dst is None or source_id == target_id:
+            return None
+        if src["balance"] < amount:
+            return None
+        self._record(src, timestamp, src["balance"] - amount)
+        self._record(dst, timestamp, dst["balance"] + amount)
+        src["outgoing"] += amount
+        return src["balance"]
+
+    # ---- Level 2 ----------------------------------------------------------
+    def top_spenders(self, timestamp: int, n: int) -> List[str]:
+        self._process_cashbacks(timestamp)
+        ranked = sorted(
+            ((aid, rec["outgoing"]) for aid, rec in self.accounts.items()
+             if rec["merged_at"] is None),
+            key=lambda pair: (-pair[1], pair[0]),
+        )
+        return [f"{aid}({total})" for aid, total in ranked[:n]]
+
+    # ---- Level 3 ----------------------------------------------------------
+    def pay(self, timestamp: int, account_id: str, amount: int):
+        self._process_cashbacks(timestamp)
+        rec = self._active(account_id)
+        if rec is None or rec["balance"] < amount:
+            return None
+        self._record(rec, timestamp, rec["balance"] - amount)
+        rec["outgoing"] += amount
+        self._payment_seq += 1
+        pid = f"payment{self._payment_seq}"
+        cashback = amount * 2 // 100            # 2%, floored
+        self.payments[pid] = {"account": account_id, "amount": cashback,
+                              "status": "IN_PROGRESS"}
+        heapq.heappush(self.cashbacks,
+                       (timestamp + self.CASHBACK_DELAY, self._heap_seq, pid))
+        self._heap_seq += 1
+        return pid
+
+    def get_payment_status(self, timestamp: int, account_id: str,
+                           payment_id: str):
+        self._process_cashbacks(timestamp)
+        if self._active(account_id) is None:
+            return None
+        pay = self.payments.get(payment_id)
+        if pay is None or pay["account"] != account_id:
+            return None
+        return pay["status"]
+
+    # ---- Level 4 ----------------------------------------------------------
+    def merge_accounts(self, timestamp: int, account_id1: str,
+                       account_id2: str) -> bool:
+        self._process_cashbacks(timestamp)
+        a1 = self._active(account_id1)
+        a2 = self._active(account_id2)
+        if a1 is None or a2 is None or account_id1 == account_id2:
+            return False
+        # Re-home account2's pending cashbacks onto account1.
+        for pay in self.payments.values():
+            if pay["account"] == account_id2 and pay["status"] == "IN_PROGRESS":
+                pay["account"] = account_id1
+        a1["outgoing"] += a2["outgoing"]
+        self._record(a1, timestamp, a1["balance"] + a2["balance"])
+        a2["merged_at"] = timestamp        # absorbed; history kept for the past
+        return True
+
+    def get_balance(self, timestamp: int, account_id: str, time_at: int):
+        self._process_cashbacks(timestamp)
+        rec = self.accounts.get(account_id)
+        if rec is None or time_at < rec["created_at"]:
+            return None
+        if rec["merged_at"] is not None and time_at >= rec["merged_at"]:
+            return None                    # absorbed by then
+        # Latest history entry with event time <= time_at.
+        idx = bisect.bisect_right(rec["history"], (time_at, INF)) - 1
+        return rec["history"][idx][1] if idx >= 0 else None
+
+
+# ---------------------------------------------------------------------------
+# Q30. Diameter of Binary Tree (LeetCode 543)
+# ---------------------------------------------------------------------------
+# Return the length (in edges) of the longest path between any two nodes. The
+# path need not pass through the root.
+#
+# Idea: one post-order DFS returning each subtree's height in edges. The longest
+# path THROUGH a node is left_height + right_height; track the max of that over
+# all nodes while the same recursion computes heights.
+#
+# Time O(n)   Space O(height)
+def diameter_of_binary_tree(root) -> int:
+    best = 0
+
+    def height(node) -> int:               # height in edges of this subtree
+        nonlocal best
+        if not node:
+            return 0
+        lh = height(node.left)
+        rh = height(node.right)
+        best = max(best, lh + rh)          # path through `node`
+        return 1 + max(lh, rh)
+
+    height(root)
+    return best
+
+
+# ---------------------------------------------------------------------------
+# Q31. Palindromic Substrings (LeetCode 647)
+# ---------------------------------------------------------------------------
+# Count the palindromic substrings of s. Different positions count separately
+# even when the substrings are identical.
+#
+# Idea (expand around center): each palindrome is centered on a character (odd
+# length) or on a gap between two characters (even length) -- 2n-1 centers. From
+# each center expand while the ends match, counting one palindrome per expansion.
+#
+# Time O(n^2)   Space O(1)
+def count_palindromic_substrings(s: str) -> int:
+    n = len(s)
+
+    def expand(lo: int, hi: int) -> int:
+        count = 0
+        while lo >= 0 and hi < n and s[lo] == s[hi]:
+            count += 1
+            lo -= 1
+            hi += 1
+        return count
+
+    total = 0
+    for i in range(n):
+        total += expand(i, i)              # odd-length centers
+        total += expand(i, i + 1)          # even-length centers
+    return total
+
+
 def _run_self_tests() -> None:
     # Q1a
     assert is_alien_sorted(["hello", "leetcode"], "hlabcdefgijkmnopqrstuvwxyz")
@@ -1311,6 +1532,93 @@ def _run_self_tests() -> None:
     assert merge_two_interval_lists([], [[1, 5]]) == [[1, 5]]
     assert merge_two_interval_lists([[1, 10]], [[2, 3], [4, 5]]) == [[1, 10]]
     assert merge_two_interval_lists([[1, 3]], [[3, 5]]) == [[1, 5]]  # touching
+
+    # Q29 - Level 1 & 2
+    bank = BankingSystem()
+    assert bank.create_account(1, "a") is True
+    assert bank.create_account(2, "a") is False        # already exists
+    assert bank.deposit(3, "a", 100) == 100
+    assert bank.deposit(4, "b", 10) is None            # no account b
+    assert bank.create_account(5, "b") is True
+    assert bank.deposit(6, "b", 50) == 50
+    assert bank.transfer(7, "a", "b", 30) == 70        # a:70  b:80
+    assert bank.transfer(8, "a", "c", 5) is None       # target missing
+    assert bank.transfer(9, "a", "a", 5) is None       # same account
+    assert bank.transfer(10, "a", "b", 1000) is None   # insufficient funds
+    assert bank.top_spenders(11, 5) == ["a(30)", "b(0)"]
+
+    # Q29 - Level 3 (payments & cashback); use big amounts for nonzero cashback
+    b3 = BankingSystem()
+    b3.create_account(1, "a")
+    b3.deposit(2, "a", 1000)
+    pid = b3.pay(3, "a", 300)                           # cashback = 300*2//100 = 6
+    assert pid == "payment1"
+    assert b3.pay(4, "a", 100000) is None              # underfunded
+    assert b3.get_payment_status(5, "a", pid) == "IN_PROGRESS"
+    assert b3.get_payment_status(5, "x", pid) is None  # account missing
+    assert b3.get_payment_status(5, "a", "payment9") is None
+    assert b3.top_spenders(6, 1) == ["a(300)"]         # pay counts as outgoing
+    # Cashback lands lazily once an op occurs at-or-after the refund time.
+    refund_t = 3 + BankingSystem.CASHBACK_DELAY
+    assert b3.get_payment_status(refund_t + 1, "a", pid) == "CASHBACK_RECEIVED"
+    assert b3.get_balance(refund_t + 2, "a", refund_t + 1) == 706  # 700 + 6
+
+    # Q29 - Level 4 (merge & historical balance)
+    b4 = BankingSystem()
+    b4.create_account(1, "x")
+    b4.deposit(2, "x", 100)
+    b4.create_account(3, "y")
+    b4.deposit(4, "y", 50)
+    b4.transfer(5, "x", "y", 20)                        # x:80  y:70 ; x out 20
+    assert b4.get_balance(6, "x", 2) == 100             # right after deposit
+    assert b4.get_balance(6, "x", 1) == 0               # at creation
+    assert b4.get_balance(6, "x", 0) is None            # before it existed
+    assert b4.get_balance(6, "z", 1) is None            # unknown account
+    assert b4.merge_accounts(7, "x", "y") is True       # x:150
+    assert b4.merge_accounts(8, "x", "nope") is False
+    assert b4.merge_accounts(9, "x", "x") is False
+    assert b4.get_balance(10, "x", 7) == 150            # combined balance
+    assert b4.get_balance(10, "y", 4) == 50            # y's history pre-merge
+    assert b4.get_balance(10, "y", 7) is None           # absorbed by t=7
+    assert b4.top_spenders(11, 5) == ["x(20)"]          # y no longer active
+
+    # Q29 - Level 4: a merged account's pending cashback follows it
+    b5 = BankingSystem()
+    b5.create_account(1, "a")
+    b5.deposit(2, "a", 1000)
+    b5.create_account(3, "b")
+    b5.deposit(4, "b", 500)
+    p = b5.pay(5, "b", 100)                             # b:400 ; cashback = 2
+    assert b5.merge_accounts(6, "a", "b") is True       # a:1400 (1000+400)
+    rt = 5 + BankingSystem.CASHBACK_DELAY
+    assert b5.get_payment_status(rt + 1, "a", p) == "CASHBACK_RECEIVED"
+    assert b5.get_payment_status(rt + 2, "b", p) is None  # b absorbed
+    assert b5.get_balance(rt + 3, "a", rt + 1) == 1402   # 1400 + 2 cashback
+    assert b5.top_spenders(rt + 4, 5) == ["a(100)"]      # b's outgoing folded in
+
+    # Q30   tree:      1
+    #                /   \
+    #               2     3
+    #              / \
+    #             4   5
+    dt = TreeNode(1, TreeNode(2, TreeNode(4), TreeNode(5)), TreeNode(3))
+    assert diameter_of_binary_tree(dt) == 3      # 4 -> 2 -> 1 -> 3
+    assert diameter_of_binary_tree(None) == 0
+    assert diameter_of_binary_tree(TreeNode(1)) == 0            # single node
+    assert diameter_of_binary_tree(TreeNode(1, TreeNode(2))) == 1
+    # Longest path entirely within the left subtree (not through the root).
+    skew = TreeNode(1,
+                    TreeNode(2, TreeNode(3, TreeNode(4)), TreeNode(3, None,
+                             TreeNode(4))),
+                    None)
+    assert diameter_of_binary_tree(skew) == 4
+
+    # Q31
+    assert count_palindromic_substrings("abc") == 3
+    assert count_palindromic_substrings("aaa") == 6
+    assert count_palindromic_substrings("aba") == 4       # a, b, a, aba
+    assert count_palindromic_substrings("") == 0
+    assert count_palindromic_substrings("a") == 1
 
     print("All self-tests passed.")
 
