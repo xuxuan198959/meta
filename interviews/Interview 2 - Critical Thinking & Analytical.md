@@ -556,51 +556,150 @@ retrofitted.
 
 ### 5. Working through an unfamiliar scenario
 
-Less a story than a demonstration — they may just hand you
-[the case study](#part-2--troubleshooting-case-study) here. Scored on **sequencing,
-and why that order**.
+**Scored on:** whether *unfamiliar* produces a method or just more hours. The trap is
+describing diligence — "I read the docs, I asked around" — which everyone says.
 
-> "My sequence, then an example of it.
->
-> Scope before depth — how many affected, since when, what changed around then. Then
-> the cheapest discriminating check first: not the one nearest my hunch, the one
-> that eliminates the most possibilities for the least effort. Separate what
-> *changed* from what's always been true, because most incidents are a delta. And
-> treat claims in the report as hypotheses — 'nothing was deployed' is something to
-> verify, not a fact.
->
-> I learned that on silicon bring-up at Marvell. A failure could be in the RTL, the
-> board, the firmware, or the test itself, and hardware and software each assumed it
-> belonged to the other team. Arguing ownership didn't converge. What worked was
-> finding the one observation that split the space. **[FILL: the specific check —
-> swapping boards, a known-good part, isolating with a scope.]** Once you can say
-> 'this reproduces on two boards, so it isn't the board,' the conversation stops
-> being about fault and starts being about the next check.
->
-> Same shape as an agent giving a customer a wrong answer: it's our stack or the
-> merchant's configuration, and the first move is whichever check tells you which."
+**2023, two unknowns at once:** SOC 2 as a domain, LLM engineering as a discipline.
+Not a product story — say so first, since Q1 and Q2 were both this product. It's the
+only answer in Part 1 where the method is *epistemic* rather than procedural: not how
+you isolate a fault, but how you decide what to believe.
 
-**Polish this one first.** It's the only answer that demonstrates the skill rather
-than describing it, and it's the natural bridge into Part 2.
+> "Different angle on the same period — not the product, but how I got competent
+> enough to build it.
+>
+> Two things were new at once in 2023: SOC 2, which I knew nothing about, and building
+> on LLMs, which barely existed as a discipline. I'd normally learn a domain by
+> collecting materials and studying systematically. Instead I learned by conversation.
+>
+> The risk isn't that the model is sometimes wrong. It's that **when you're new you
+> can't tell which parts are wrong** — a novice can't grade the tutor. So I leaned on
+> the checks that don't need expertise.
+>
+> The cheapest is consistency. I track what it told me earlier, because contradictions
+> are free to spot — you don't need to know the domain to catch it contradicting
+> itself.
+>
+> Then watch the premises, not just the answers. It once told me to fix a quality
+> problem by switching between LLMs and comparing them. We only had the OpenAI API, so
+> switching was never an option — and the problem wasn't model-related anyway. So I
+> stated the constraint instead of just rejecting the suggestion. **Constraints aren't
+> context, they're the search space.** Until you state them it keeps optimizing
+> somewhere you don't live.
+>
+> Then the unglamorous one: anything load-bearing, go find the published document and
+> check that it echoes. Plus the lawyer in our founding group for the domain calls.
+>
+> The principle: use the model to find the questions, never to settle them."
+
+~85 seconds — at the ceiling for Part 1, so don't add to it. If you need to cut,
+drop the *"unglamorous one"* paragraph; it's the least surprising of the three checks
+and it's also probe #2 below.
+
+- **"A novice can't grade the tutor"** is the answer compressed. Say it slowly, then
+  let the three checks land as the resolution — consistency is precisely the check a
+  novice *can* run, and that's why it comes first.
+- **No product callback.** Grounding and traceability belong to
+  [Q1](#1-a-difficult-problem-under-ambiguity). Mentioning the design here turns a
+  fresh answer into a third telling of the same story.
+- **The model-switching example is the proof.** Without a specific catch, a validation
+  story is unfalsifiable. Keep it concrete and keep both errors in it — the false
+  premise *and* the misdiagnosis.
+
+**Probes:**
+
+- *"Isn't that outsourcing your thinking to a chatbot?"* → **Expect this.** "It moved
+  my effort from reading to verifying, and verifying is the harder half. Studying
+  systematically means studying *uniformly*, because you can't yet tell what matters.
+  Conversation finds the ten percent that's load-bearing — then you verify that
+  properly."
+- *"How do you decide what's worth verifying?"* → "Engineering instinct, mostly —
+  where something smells wrong, or where being wrong is expensive and hard to reverse.
+  That's what points the checks. I can't verify everything, so I verify what the rest
+  rests on."
+- *"A partner integration you've never seen — same method?"* → **the bridge into Part
+  2.** "Every merchant is a domain I don't know. Ground truth is their config and the
+  API contract, never the model's guess at what their system does. Hypotheses from the
+  model, checks against logs and traces."
+
+**Knock-on:** Q1, Q2 and Q5 are now all the same product, so the opening disclaimer is
+load-bearing rather than decoration. Story Bank's *"learned something fast"* row
+currently points at the RAG/vector pivot — it should point here.
 
 ### 6. The hardest thing you've debugged
 
-Not in the guide, but natural in a troubleshooting round. Don't reuse Marvell if
-you spent it on Q5.
+Not in the guide, but natural in a troubleshooting round. Q1, Q2, Q3 and Q5 are all
+the assistant — this is the one chance in Part 1 to be infrastructure rather than
+product, so don't spend it on another AI story unless they ask for one.
 
-**Best answer: the AWS us-east-1 outage**, October 2025 — Story H in the
+**The AWS us-east-1 outage**, October 2025 — Story H in the
 [story bank](<./Story Bank - Rounds 4 & 5.md#h-the-aws-us-east-1-outage--the-incident-story>).
-Recent, distributed-systems, and the JD's first responsibility line is
-*"independently managing complex outages."* Two beats: **existing EC2 instances kept
-running while new launches failed**, so the reflexive restart was the worst move;
-and **multi-AZ doesn't protect against a regional control-plane failure.**
+Recent, distributed-systems, and the JD's first responsibility line is *"independently
+managing complex outages."*
 
-If they want something AI-flavoured: a **retrieval bug in the questionnaire
+**Scored on:** triage under multiple simultaneous signals, and knowing when to stop
+debugging. Both decisions in this story are **restraint** — you defer two erroring
+components, then you stop engineering entirely. Most incident answers are heroics;
+this one is judgment about what *not* to do, which is rarer and reads as senior.
+
+> "October 2025, the AWS us-east-1 outage. A customer told us they couldn't log in —
+> a customer, not our monitoring.
+>
+> The logs were all on fire: SSO, the AI gateway, the database, all erroring. That's
+> the decision point. With three components failing the temptation is to chase all
+> three — I anchored on the one a user had actually reported. The others were
+> hypotheses; login was a confirmed impact. So I deferred them deliberately and went
+> at login.
+>
+> It was failing to fetch a token from AWS Secrets Manager. We were multi-AZ in
+> us-east-1, and the outage took the whole region — **multi-AZ bought us nothing.**
+> AWS had acknowledged it with no ETA.
+>
+> So instead of waiting I asked what we had outside the region. Secrets Manager in
+> us-west-1, not actively in use — and the token was already there. I cut login over,
+> and users could get in.
+>
+> Then the second wave: they were in, but the AI gateway and the database were
+> degraded — over half our capacity gone, and no cross-region copy of either. Nothing
+> left to engineer. But it wasn't a hard down; requests were succeeding intermittently.
+> So the job changed. I worked with colleagues to tell customers what was happening,
+> that full recovery depended on AWS, and that retrying genuinely did work some of the
+> time.
+>
+> The lesson: when everything is erroring at once, start where a user told you it
+> hurts. Logs tell you what's unhappy. A user tells you what's broken."
+
+~90 seconds. **The last two lines are the payload — don't rush them.**
+
+- **Name the luck.** The token *being* in us-west-1 was luck. Looking outside the
+  region wasn't. Say both — claiming the whole thing as foresight is the one way this
+  story loses credibility, and volunteering the split is what buys the rest of it.
+- **Don't recite the AWS root cause unprompted.** The DynamoDB DNS race is in the
+  story bank for probes. Unasked, it reads as rehearsed trivia; on request, it reads as
+  understanding.
+- **"Multi-AZ bought us nothing"** — flat, no hedging. It's the line that says you
+  understand the failure domain rather than the incident.
+
+**Probes:**
+
+- *"What actually caused it?"* → a latent race in DynamoDB's automated DNS management
+  emptied the regional endpoint's DNS record; cascade into EC2 launches, NLB health
+  checks, Lambda/ECS/EKS, STS and IAM. **The operational detail worth adding:** existing
+  EC2 instances kept running — only *new launches* failed, so anyone who reflexively
+  restarted destroyed a working machine they couldn't get back.
+- *"Was the us-west-1 token luck?"* → "The token being there, yes. Looking outside the
+  region wasn't — once you know it's regional and there's no ETA, the only useful
+  question is what you own that isn't in that region."
+- *"Why not work the database and gateway errors in parallel?"* → "One person, and they
+  were plausibly downstream of the same event. Serial beats parallel when you're alone,
+  and confirmed impact outranks a suspicious log line."
+- *"What would have caught this automatically?"* → **the close for any RCA in this
+  loop.** External synthetic monitoring — a login probe run from outside the region.
+  The real failure wasn't the outage, it was that a customer knew before we did.
+
+*Only if they explicitly ask for an AI example:* a **retrieval bug in the questionnaire
 assistant** — nothing errors, no stack trace, the answer is just wrong. **[FILL: a
-specific instance.]**
-
-Close either with: **the hardest bugs aren't the ones that crash — they're the ones
-that return a plausible answer.**
+specific instance.]** Close that one with **the hardest bugs aren't the ones that crash
+— they're the ones that return a plausible answer.**
 
 ---
 
