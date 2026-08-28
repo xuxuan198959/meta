@@ -235,33 +235,66 @@ supply.
 
 ### 1. A difficult problem under ambiguity
 
-**Story E — the SOC 2 evidence pipeline.** The cleanest ambiguity story you have,
-because the *requirement itself* was undefined.
+**Story A — the questionnaire assistant, told from the requirements end.** The
+ambiguity wasn't in the data or the cause; it was in the *target*. You were handed
+an adjective and had to convert it into properties you could build and test. That's
+the more senior kind of ambiguity, and it's the spine of the answer.
 
-> "A document pipeline I built last year. Customers going through SOC 2 audits had
-> their evidence — policies, approvals, screenshots — only in Chinese, and the
-> auditors read English. Someone was translating page by page: slow, and
-> inconsistent depending on who did it.
+> "At Kaamel I built an AI assistant that drafts answers to enterprise security
+> questionnaires. The requirement I was given was that the answers had to be high
+> quality and satisfy the customer. That's not a spec — 'high quality' isn't
+> something you can build against or test against, and the customers couldn't
+> define it either.
 >
-> The ambiguity was that the requirement was undefined. 'Auditor-ready' isn't a
-> spec, and nobody could tell me which documents would survive OCR — Chinese
-> business documents have red seals stamped across the text, handwritten sign-offs,
-> tables that don't extract cleanly.
+> So I went and asked. Customers, and the lawyers who'd be on the hook if an answer
+> was wrong. I didn't ask them what quality meant — they don't think in those terms.
+> I asked what they cared about most. The answer came back the same way every time:
+> **is it correct, and if this gets challenged, how do I defend it?**
 >
-> So I made the unknown measurable. I ran real evidence through and sorted the
-> output by how badly it degraded, which gave me document *classes* instead of one
-> quality number. Clean digital went straight through; stamps, handwriting, and
-> complex tables routed to a human rather than being silently degraded.
-> **[VERIFY the split.]**
+> Nobody said 'traceability.' They said 'defend.' Those are the same requirement,
+> and translating one into the other was my job. It gave me four properties I could
+> actually build and test:
 >
-> The principle I'd point to: the win isn't accuracy on the average page. It's
-> knowing which pages you'll be wrong on *before* you're wrong on them."
+> — every answer grounded in what's in the knowledge base, not in the model's
+> general knowledge;
+> — every answer linked back to the record it came from, so it explains itself;
+> — when the knowledge base has nothing, no assumption — surface it as unknown and
+> hand off to a person;
+> — human review in the loop, so every miss comes back as signal instead of
+> disappearing.
+>
+> The third one changed the product most. The failure mode was never bad answers —
+> it was **plausible** ones, assembled from knowledge that was real but unrelated.
+>
+> Effort dropped about 60%, and 85% of answers were accepted as-is, measured by the
+> customer's own accept/edit/reject click rather than by us grading ourselves.
+>
+> The principle: when a requirement arrives as an adjective, go ask the people who'll
+> live with it what they're afraid of. They'll describe a fear, and turning that into
+> properties you can observe is the engineering."
 
-That last line is also the right posture toward an AI agent in production. Don't
-explain the parallel — let them make it.
+**Land on the last two sentences and stop.** ~100 seconds.
 
-*Alternative if they want something older:* Story G, the Marvell bring-up, where
-the ambiguity was which layer owned the bug.
+**Probes to have ready:**
+
+- *"Why lawyers?"* → "Because the document has legal exposure attached, and the
+  person who feels that most sharply describes the requirement most precisely. An
+  engineer asking 'what does good look like' gets a vague answer. Asking 'what
+  happens to you if this is wrong' gets a specific one."
+- *"How did you validate those were the right four properties?"* → "The
+  accept/edit/reject click. If I'd guessed wrong about what customers cared about,
+  the acceptance rate wouldn't have moved — and I'd have found that out from their
+  behavior rather than from their opinion."
+- *"Which of the four was hardest?"* → abstention. Grounding and linking are
+  plumbing; deciding *when there's nothing to say* is a judgment call the system has
+  to make on every answer.
+
+**Note the knock-on effects.** This story is now spent here, so:
+[Q2](#2-adopting-integrating-or-championing-ai-tools) must come at AI from a
+different face, and [Q6](#5-likely-fifth--the-hardest-thing-youve-debugged) can
+still use the 15% split — that's diagnosis, not requirements, and the two don't
+overlap in the ear. **Story E, the SOC 2 OCR pipeline, is now free** and is the
+natural backup if they ask for a second ambiguity example or something older.
 
 ### 2. Adopting, integrating, or championing AI tools
 
