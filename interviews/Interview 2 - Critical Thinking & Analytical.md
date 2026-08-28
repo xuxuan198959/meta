@@ -107,7 +107,7 @@ interview day.
 
 | Part | Time | Format |
 |------|------|--------|
-| [1 — Experience questions](#part-1--experience-questions) | ~10 min | Behavioral: ambiguity, prioritization, escalation, AI adoption |
+| [1 — Experience questions](#part-1--experience-questions) | ~10 min | Behavioral: ambiguity, decisions on thin information, escalation, AI adoption |
 | [2 — Troubleshooting case](#part-2--troubleshooting-case-study) | ~15–20 min | Verbal analytical case, no tools |
 | [**3 — Live prompt demo**](#part-3--live-prompt-engineering-demo) | ~15–20 min | **Screen share, real AI tool, PDF to recruiter after** |
 
@@ -257,7 +257,8 @@ the more senior kind of ambiguity, and it's the spine of the answer.
 >
 > — every answer grounded in what's in the knowledge base, not in the model's
 > general knowledge;
-> — every answer linked back to the record it came from, so it explains itself;
+> — every answer traceable to the record it came from, so we can always show why it
+> said what it said;
 > — when the knowledge base has nothing, no assumption — surface it as unknown and
 > hand off to a person;
 > — human review in the loop, so every miss comes back as signal instead of
@@ -289,12 +290,17 @@ the more senior kind of ambiguity, and it's the spine of the answer.
   plumbing; deciding *when there's nothing to say* is a judgment call the system has
   to make on every answer.
 
-**Note the knock-on effects.** This story is now spent here, so:
-[Q2](#2-adopting-integrating-or-championing-ai-tools) must come at AI from a
-different face, and [Q6](#5-likely-fifth--the-hardest-thing-youve-debugged) can
-still use the 15% split — that's diagnosis, not requirements, and the two don't
-overlap in the ear. **Story E, the SOC 2 OCR pipeline, is now free** and is the
-natural backup if they ask for a second ambiguity example or something older.
+**Keep traceability here *internal*.** In this answer it's an engineering property —
+*we* can always show why the system said what it said. Making it **visible to the
+customer** is [Q2](#2-adopting-integrating-or-championing-ai-tools)'s move, and it's
+what separates the two answers. Don't spend it twice; if you say "so the customer
+could verify it" here, Q2 loses its punchline.
+
+**Knock-on effects.** Q2 comes at the same product from the adoption side —
+different problem, so say that out loud. Q6 can still use the 15% split; that's
+diagnosis, not requirements, and the two don't overlap in the ear. **Story E, the
+SOC 2 OCR pipeline, is now free** and is the natural backup if they want a second
+ambiguity example or something older.
 
 ### 2. Adopting, integrating, or championing AI tools
 
@@ -302,39 +308,71 @@ Highest-stakes answer in the round — named in the guide here *and* in Round 4,
 an "AI native" JD bullet. Two readings; if it's ambiguous, ask: *"do you mean AI in
 what I've built, or AI in how I work?"*
 
-#### 2a. In the product — the questionnaire assistant
+#### 2a. Championing it — the adoption problem
 
-Weight toward **judgment over outcome**. The 60% and 85% are setup; the v1 customers
-rejected, and why, is the answer.
+Same product as [Q1](#1-a-difficult-problem-under-ambiguity), **different problem**,
+and say so in the first sentence. Reusing a product is fine; reusing a narrative is
+what reads as a thin story bank. Q1 was *what does quality even mean here.* This is
+*people didn't want it* — which is the one the guide actually calls **championing**.
 
-> "An AI questionnaire assistant I designed and built at Kaamel. Our enterprise
-> customers get security questionnaires from *their* customers — hundreds of
-> questions on controls, data handling, incident response — and answering one meant
-> a security lead spending days across scattered policy docs.
+The beat that makes this credible is the one that's easy to drop: **the discount
+didn't work.** A championing story where every lever lands sounds like a sales pitch.
+
+> "Same product I just described, but a different problem — building it was one
+> thing, getting people to use it was another.
 >
-> I designed the retrieval path end to end: ingestion, chunking, embeddings, vector
-> index, retrieval, generation. We shipped v1 in mid-2024 and customers didn't trust
-> it. They said the quality was low, but when I dug in, that wasn't the real problem
-> — **they couldn't see where an answer came from.** These answers go to auditors,
-> so an unverifiable claim is legal exposure. Their reaction was rational.
+> We launched mid-2024. Models were weaker then, and customers were resistant. The
+> complaint we got was 'the answer quality is low.' We had a price lever, so we used
+> it — discounted the product. It did nothing. Not a small effect. None.
 >
-> The fix wasn't a better model. I built the traceability layer — every answer links
-> back to its source record — made review mandatory rather than a setting, and had
-> the system abstain when retrieval came back weak. Effort dropped about 60%, and
-> 85% of answers were accepted as-is, measured by the customer's own accept/edit/
-> reject click, not by us grading ourselves.
+> That told me I'd misread the objection. When I went back to the actual concern, it
+> wasn't quality in the abstract: these answers go to auditors, and a plausible
+> answer they couldn't verify was legal exposure. They weren't declining to pay for
+> a mediocre tool — they were declining to put their name on something they couldn't
+> check. **A discount on that is worth zero.**
 >
-> The 15% is the interesting part: two problems in the same costume. Some were
-> controls the company had *changed* — a freshness bug. The rest were questions with
-> no documented answer anywhere, where the only correct behavior is to say so. One
-> accuracy number hides both."
+> The system could already trace every answer back to its source record. The
+> customer just couldn't see it. **Provenance you can't see isn't provenance, it's a
+> log.** So the fixes were: surface the source on every answer in the product, make
+> human review a mandatory step rather than a setting, and partner with a handful of
+> customers — access in exchange for a real feedback loop. The product decisions
+> there were mine; I influenced the pricing call but didn't own it.
+>
+> The partnership is the part I'd underline. The discount only started working once
+> it was buying *feedback* instead of buying *adoption*, because the feedback is what
+> let quality actually improve. With Drata it ended up fully reciprocal — they use
+> our product, we use theirs. That's what real adoption looked like: not a price
+> concession, a mutual bet.
+>
+> What I took from it: **you can't discount your way past a trust problem. When
+> someone doesn't trust an AI output, the fix is to make it checkable — not cheaper,
+> and usually not even better.**"
 
-**The line to make sure you say:** *"When someone doesn't trust an AI output, the
-fix is usually to make it checkable — not to make it better."*
+~110 seconds. The longest answer you should give in Part 1, and it earns the time.
 
-*On championing:* traceability plus commercial pull — discounted pricing, free
-access for partners in exchange for feedback. **[FILL: who internally distrusted it
-and what convinced them? That's the missing half of "championed."]**
+*On naming Drata:* fine if the partnership is public or non-confidential — a named,
+recognizable compliance platform is worth far more than "a customer." If you're not
+certain, say *"a compliance-automation platform we partner with"* and keep the
+reciprocity detail, which is the part that carries the point.
+
+**Probes:**
+
+- *"Traceability or mandatory review — which mattered more?"* → "Traceability. Review
+  is a cost you're imposing; traceability is what makes the review cheap. Without it
+  a reviewer has to re-derive the answer. With it they check a link in a couple of
+  seconds. I didn't make them trust the output — I made verifying it faster than
+  doing it themselves."
+- *"Models got much better over that period. How do you know it was your changes?"*
+  → **Expect this.** "They did, and I won't claim the model didn't help. But the
+  objection customers actually stated was verifiability, not fluency — and the 15%
+  still rejected afterward weren't model failures either. They were stale controls
+  and questions with no documented answer. A better model doesn't fix either."
+- *"You said the product decisions were yours — what about pricing?"* → You
+  influenced it; you didn't own it. Say exactly that. Overclaiming a pricing decision
+  is a cheap way to get caught.
+- *"How did you choose the feedback partners?"* → **[FILL — one sentence on the
+  selection criterion.** Something like "customers whose questionnaires were hardest,
+  not the friendliest ones," if that's true.]
 
 #### 2b. In your own workflow
 
@@ -367,35 +405,156 @@ one you name is actually current.
 > can we take it back? If not, the model drafts and a person sends. Same call I made
 > on the compliance answers, which is why review there isn't switchable."
 
-### 3. Prioritizing, escalating, collaborating when blocked
+### 3. A decision made with limited information
 
-They want a **heuristic you actually use**. Lead with the rule, then show it working.
+**Scored on:** whether you can commit without certainty, or stall until someone hands
+you facts. Distinct from [Q1](#1-a-difficult-problem-under-ambiguity) — that was
+*resolving* ambiguity before building; this is deciding while it's still unresolved.
 
-> "I escalate on blast radius and on new information — not on frustration. If impact
-> is spreading, or I've learned something the owning team doesn't know yet,
-> interrupting them is cheap compared to being wrong. If the only true thing is that
-> I'm stuck, that's not an escalation, that's me still working the problem.
+**The 2023 product-selection decision.** Different muscle from the other answers,
+which is why it's here: Q1 and Q2 are both the assistant, and this shows judgment
+under genuine information scarcity rather than under a clock.
+
+> "Late 2023, we were deciding what to build. AI was obviously powerful — everyone
+> could see that, and that was the problem. We had too many ideas and no basis to
+> choose between them: AI resume generation, enterprise travel and hotel booking, a
+> dozen others. And there was real pressure, because the fear was falling behind
+> while we deliberated.
 >
-> For prioritizing: customer impact times reversibility. An irreversible wrong
-> action on one customer can outrank a cosmetic issue on a thousand.
+> There was no data to decide with. The market didn't exist yet in any measurable
+> form. So instead of arguing about which idea was best, I went after the cheapest
+> real evidence available. Two things: I counted the competitors in each area, and —
+> our building was full of startups — I walked around and asked people what they
+> were working on. Not rigorous, but it was a live sample of everyone having the
+> same idea we were, and I had it in **[VERIFY: days? a week?]**.
 >
-> Example from Meta. Several teams had each built their own path to the same network
-> data and the numbers disagreed. My instinct was to escalate for a ruling, but
-> nobody had the information to make that call yet, including me. So I built a
-> dashboard comparing every existing path against a unified one, per dataset, per
-> metric, live. That turned 'your numbers are wrong' into something people could
-> point at together — discrepancies got fixed instead of argued about, and we got
-> the unified API to 100% of users. **[VERIFY: dashboard before the migration or
-> alongside it?]**
+> Same procedure I'd run on a hard bug, honestly. I couldn't get the measurement I
+> wanted, so I took the one I could get and used it to rule things out.
 >
-> The lesson: the alternative to escalating isn't always doing it yourself.
-> Sometimes it's building the thing that makes the decision obvious."
+> That reframed the question. The ideas we liked were crowded — and they were
+> crowded *because* they need no domain expertise. Anyone could build a resume
+> generator, which is exactly why we couldn't win one.
+>
+> So I wrote up each area against a single criterion: where do we actually have a
+> moat. That pointed at compliance — helping companies through SOC 2 with AI. Less
+> popular, harder to enter, and we had the three things that mattered: a lawyer in
+> the founding group with real domain expertise, customer relationships through our
+> CEO, and a market that was going to expand, because China's economy runs on
+> exporting and exporters need this.
+>
+> I did that analysis and made the recommendation. It's the business we're in today,
+> and we're a profitable small company — which for a startup this size is the answer
+> to whether the call was right.
+>
+> The principle: when you can't get the information you want, get the information you
+> *can*, and use it to eliminate rather than to pick. And low competition isn't
+> always a warning — sometimes it's the only evidence you have that something is hard
+> to copy."
 
-**[FILL — if you have a time you *did* interrupt someone and why, lead with that
-instead.** This story is about *avoiding* escalation, so a sharp interviewer may
-push for the other case. It also doubles as Round 4's incident story.]
+~110 seconds. Say **"I did that analysis and made the recommendation"** plainly —
+you did the market study, the building walk, and the moat write-up, and the round is
+scored on your judgment, not the company's.
 
-### 4. Working through an unfamiliar scenario
+**The risk, and the insurance.** This is a strategy story in an operational round.
+It's a differentiator if the *method* reads as engineering — enumerate options, pick
+the criterion that discriminates hardest, get cheap evidence, eliminate — and a
+liability if it sounds like you'd rather be founding a company than debugging a
+partner integration. The "same procedure I'd run on a hard bug" line is the
+insurance; don't cut it. *Alternative if you want this round purely operational:*
+the AWS outage's *"I didn't need the cause, I needed to know which moves were
+irreversible"* — but that spends Story H early.
+
+**Probes:**
+
+- *"How do you know that wasn't just luck?"* → "Separate the decision from the
+  outcome. The reasoning was that we could only win where entry was hard, and hard
+  entry meant domain expertise, of which we had exactly one kind. If the market had
+  gone the other way, that reasoning would still have been the right way to choose."
+- *"What would have changed your recommendation?"* → "Two things. If the walk around
+  the building had turned up three teams already doing compliance, or if the domain
+  expertise hadn't been in the founding group — a moat you have to hire for isn't a
+  moat yet."
+- *"Why not wait for better information?"* → "Because the cost of waiting was the
+  thing we were most exposed to. Every week we spent deliberating, the crowded ideas
+  got more crowded. When the information won't arrive before the window closes, the
+  decision is which risk you'd rather hold."
+
+### 4. Prioritizing, escalating, collaborating when blocked
+
+**Scored on:** whether you have a rule, or an instinct you rationalize afterward.
+The test of a real heuristic is that it explains a **yes and a no** — so this answer
+carries both, and the same rule produces each.
+
+It's also the answer that keeps Part 1 from sounding like one year of your life:
+Q1–Q3 are all Kaamel 2023–24, and this one spans Meta and Kaamel.
+
+> "My rule: escalate when I have information the decision-maker doesn't. Not when
+> I'm stuck and not when I'm frustrated — those are mine to work through. Blast
+> radius is the other trigger: if impact is spreading, interrupting someone is cheap
+> compared to being wrong.
+>
+> **A time I did.** I'd just joined Kaamel and there was already work underway on an
+> AI resume generator. I was skeptical, and the reason was first-hand: I'd been job
+> hunting not long before and I used ChatGPT to write my resume. I was the target
+> customer, and I wouldn't have paid for it.
+>
+> But that's one person's experience — it's subjective, and as a new hire an opinion
+> is the weakest thing you can bring into a room. So I did the competitor study and
+> the market sizing first, and when I raised it I said plainly which part was
+> evidence and which part was me. I put the question on the product, not on the
+> people who'd been building it. The project was stopped.
+>
+> **A time I didn't.** At Meta, several teams each had their own path to the same
+> network data and the numbers disagreed. My instinct was to escalate for a ruling —
+> but nobody had the information to make that call, including me.
+>
+> And the question I cared about wasn't *whose* numbers were wrong. It was *why*
+> they disagreed. Those sound similar and they produce completely different
+> conversations: one asks people to defend themselves, the other asks them to look
+> at the same thing. So I built a dashboard comparing every path against a unified
+> one, per dataset, per metric, live. That made the discrepancy the subject instead
+> of the teams. They got fixed instead of argued about, and the unified API got to
+> 100% of users.
+>
+> That part's deliberate, in both cases — I keep the problem as the subject rather
+> than the people. Blame doesn't reconcile a dataset.
+>
+> Same rule both times. In the first case I had information the decision-makers
+> didn't, so escalating was right. In the second, nobody had it — escalating would
+> only have moved the argument up a level. **If all you have is a disagreement, go
+> get the information first. Then escalate.**"
+
+~2 minutes, the longest in Part 1 after Q2. Worth it: rule → yes-case → no-case →
+rule restated is the structure that makes a heuristic believable rather than
+retrofitted.
+
+**Three things not to lose in delivery:**
+
+- **"I was the target customer, and I wouldn't have paid for it."** The cheapest
+  disconfirming test there is, and you'd already run it by accident. Say it slowly.
+- **Naming your own evidence as subjective.** Volunteering the weakness in your case
+  is what makes the rest of it credible — and it's rare enough that it lands.
+- **The manner is the collaboration answer.** The question says *collaborating*, and
+  there's no conflict beat in either case because there wasn't one. Problem-as-subject
+  in both is the substitute, and it's better than manufactured tension. Don't invent
+  a pushback story.
+
+**Probes:**
+
+- *"Wasn't that risky, weeks into a new job?"* → "The risk isn't disagreeing, it's
+  disagreeing with nothing behind you. That's why I did the market study before I
+  opened my mouth rather than after."
+- *"What if you'd been wrong?"* → "Then the study would have shown it and I'd have
+  said so. I wasn't asking anyone to trust my judgment — I was putting the same
+  information in front of everyone."
+- *"How do you prioritize when several things are broken at once?"* → "Customer
+  impact times reversibility. An irreversible wrong action on one customer can
+  outrank a cosmetic issue affecting a thousand."
+- *"How do you decide what **not** to work on?"* → "Same formula backwards — and I
+  say the deprioritization out loud. An unacknowledged low priority looks identical
+  to a dropped ball from the outside."
+
+### 5. Working through an unfamiliar scenario
 
 Less a story than a demonstration — they may just hand you
 [the case study](#part-2--troubleshooting-case-study) here. Scored on **sequencing,
@@ -424,10 +583,10 @@ and why that order**.
 **Polish this one first.** It's the only answer that demonstrates the skill rather
 than describing it, and it's the natural bridge into Part 2.
 
-### 5. Likely fifth — the hardest thing you've debugged
+### 6. The hardest thing you've debugged
 
 Not in the guide, but natural in a troubleshooting round. Don't reuse Marvell if
-you spent it on Q4.
+you spent it on Q5.
 
 **Best answer: the AWS us-east-1 outage**, October 2025 — Story H in the
 [story bank](<./Story Bank - Rounds 4 & 5.md#h-the-aws-us-east-1-outage--the-incident-story>).
