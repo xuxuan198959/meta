@@ -428,6 +428,34 @@ In your back pocket if they push for more, roughly in order of leverage:
 6. **Restate constraints near the current turn.** Recency beats presence; a constraint
    stated once in turn 2 is weaker than the same one repeated in turn 30.
 
+*If they push to the mechanics — "concretely, what do you do when the window fills?"*
+Naming the actual commands is what separates having read about this from doing it
+daily. In Claude Code specifically:
+
+- **Diagnose first — `/context`.** Shows the breakdown: system prompt, tool schemas,
+  MCP servers, project instructions, message history, each with token counts. The
+  usual surprise is that the biggest consumer isn't the conversation — it's MCP
+  server schemas loaded at startup. Disabling the servers you're not using buys back
+  more than any amount of pruning.
+- **`/compact <instructions>`, never bare `/compact`.** Bare, the model picks what
+  survives. With instructions — *"keep the auth decisions and the failing test
+  output, drop the file exploration"* — you pick. This is the literal mechanism for
+  "keep the important context," and most people don't know the argument exists.
+- **`/clear` when the task changes.** Cheaper than compacting a thread you no longer
+  need, and it removes the abandoned approaches that keep getting re-weighted.
+- **`/rewind` (or double-`Esc`) for a bad stretch.** When one detour blew up the
+  window — a huge file dump, a wrong path — rewind removes it instead of summarizing
+  it into the permanent record.
+- **Write state out *before* compacting.** Task state and decisions into a scratch
+  file, then `/clear` and re-read it. A clean window with full state beats a
+  compacted window with partial state. Compacting is what you do when you forgot to.
+- **Subagents keep bulk out of the main thread.** A subagent reads twenty files in
+  its own context and returns three sentences; the file contents never enter yours.
+  On a large codebase this is the biggest single lever.
+
+*Judgment call on how deep to go:* one or two of these, offered as evidence, reads as
+fluency. All six, unprompted, reads as a tool demo. Let them ask.
+
 *Near-certain follow-up — "where should we **not** use AI in a support workflow?"*
 
 > "Anywhere a confident wrong answer is both asymmetric and irreversible. Refunds,
