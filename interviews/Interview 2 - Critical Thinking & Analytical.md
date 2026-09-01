@@ -398,6 +398,36 @@ as a failure mode you've adapted to is the difference between using a tool and
 understanding one. *Caution:* if you cite trying the latest models, make sure the
 one you name is actually current.
 
+*Near-certain follow-up — "so how do you manage context?"* You've just claimed this
+had more effect than any prompt wording. **Expect to be asked to cash the claim.**
+
+> "Three things. The conversation is scratch space, so anything that has to survive
+> goes in a file I re-feed — spec, constraints, decisions already made — not in the
+> thread, hoping turn 40 still remembers turn 3. One thread per unit of work; when
+> the task changes I start fresh, because a long thread keeps weighting approaches I
+> already abandoned. And I watch for a specific tell: when the model reintroduces
+> something I rejected or drops a constraint I gave it early, that's context
+> degradation, not a prompting problem. **Re-explaining doesn't fix it.** I restart
+> with a summary I write myself, so I decide what survives instead of letting
+> auto-compaction average everything out."
+
+~30 seconds. The line that lands is *"re-explaining doesn't fix it"* — that's the
+part you only say if you've actually hit this, not read about it.
+
+In your back pocket if they push for more, roughly in order of leverage:
+
+1. **Externalize state to files, not the thread.** Source of truth is a doc you
+   re-feed; the thread is disposable.
+2. **One thread per unit of work.** Restarting is cheap; not restarting isn't.
+3. **Curate, don't paste.** The failing function and the actual error — not the whole
+   file, not the whole log. Low-signal tokens dilute attention on the ones that matter.
+4. **Hand-written summaries over auto-compaction.** You keep the constraints and drop
+   the dead ends; the tool keeps a plausible average of both.
+5. **Retrieve just-in-time.** Tools, MCP, subagents pull context in when needed rather
+   than preloading it — which is also why the Skills/MCP line above isn't a name-drop.
+6. **Restate constraints near the current turn.** Recency beats presence; a constraint
+   stated once in turn 2 is weaker than the same one repeated in turn 30.
+
 *Near-certain follow-up — "where should we **not** use AI in a support workflow?"*
 
 > "Anywhere a confident wrong answer is both asymmetric and irreversible. Refunds,
